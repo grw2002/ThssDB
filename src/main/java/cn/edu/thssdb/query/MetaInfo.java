@@ -5,7 +5,7 @@ import cn.edu.thssdb.schema.Column;
 import java.util.ArrayList;
 import java.util.List;
 
-class MetaInfo {
+public class MetaInfo {
 
   private String tableName;
   private List<Column> columns;
@@ -15,8 +15,17 @@ class MetaInfo {
     this.columns = columns;
   }
 
+  public List<Column> getColumns() {
+    return columns;
+  }
+
   int columnFind(String name) {
     // TODO
-    return 0;
+    for (int i = 0; i < columns.size(); i++) {
+      if (columns.get(i).getName() == name) {
+        return i;
+      }
+    }
+    return -1;
   }
 }
