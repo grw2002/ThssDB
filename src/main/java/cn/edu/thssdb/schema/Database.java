@@ -19,6 +19,10 @@ public class Database {
     recover();
   }
 
+  public String getName() {
+    return name;
+  }
+
   private void persist() {
     // TODO
   }

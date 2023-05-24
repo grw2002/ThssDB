@@ -2,6 +2,7 @@ package cn.edu.thssdb.service;
 
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
+import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;
@@ -12,6 +13,7 @@ import cn.edu.thssdb.rpc.thrift.GetTimeReq;
 import cn.edu.thssdb.rpc.thrift.GetTimeResp;
 import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
+import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
@@ -22,6 +24,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class IServiceHandler implements IService.Iface {
 
   private static final AtomicInteger sessionCnt = new AtomicInteger(0);
+
+  private Manager manager;
+
+  public IServiceHandler() {
+    super();
+    manager = Manager.getInstance();
+  }
 
   @Override
   public GetTimeResp getTime(GetTimeReq req) throws TException {
@@ -52,6 +61,7 @@ public class IServiceHandler implements IService.Iface {
     switch (plan.getType()) {
       case CREATE_DB:
         System.out.println("[DEBUG] " + plan);
+        manager.createDatabase(((CreateDatabasePlan) plan).getDatabaseName());
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
     }

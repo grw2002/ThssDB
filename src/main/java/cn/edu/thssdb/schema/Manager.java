@@ -1,5 +1,8 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.DatabaseExistsException;
+import cn.edu.thssdb.exception.DatabaseNotExistException;
+
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -7,24 +10,49 @@ public class Manager {
   private HashMap<String, Database> databases;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
+  private Database currentDatabase;
+
   public static Manager getInstance() {
     return Manager.ManagerHolder.INSTANCE;
   }
 
   public Manager() {
     // TODO
+    databases = new HashMap();
+    currentDatabase = null;
   }
 
-  private void createDatabaseIfNotExists() {
-    // TODO
+  public void createDatabase(String databaseName) throws RuntimeException {
+    if (databases.containsKey(databaseName)) {
+      throw new DatabaseExistsException();
+    }
+    createDatabaseIfNotExists(databaseName);
   }
 
-  private void deleteDatabase() {
+  private void createDatabaseIfNotExists(String databaseName) {
     // TODO
+    Database newDB = new Database(databaseName);
+    databases.put(databaseName, newDB);
+    currentDatabase = newDB;
   }
 
-  public void switchDatabase() {
+  private void deleteDatabase(String databaseName) throws RuntimeException {
     // TODO
+    if (databases.containsKey(databaseName)) {
+      if (currentDatabase.getName() == databaseName) {
+        currentDatabase = null;
+      }
+      databases.remove(databaseName);
+    } else {
+      throw new DatabaseNotExistException();
+    }
+  }
+
+  public void switchDatabase(String databaseName) throws RuntimeException {
+    // TODO
+    if (databases.containsKey(databaseName)) {
+      currentDatabase = databases.get(databaseName);
+    }
   }
 
   private static class ManagerHolder {
