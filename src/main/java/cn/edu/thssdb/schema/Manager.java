@@ -18,8 +18,12 @@ public class Manager {
 
   public Manager() {
     // TODO
-    databases = new HashMap();
+    databases = new HashMap<>();
     currentDatabase = null;
+  }
+
+  public Database getCurrentDatabase() {
+    return currentDatabase;
   }
 
   public void createDatabase(String databaseName) throws RuntimeException {
@@ -52,6 +56,8 @@ public class Manager {
     // TODO
     if (databases.containsKey(databaseName)) {
       currentDatabase = databases.get(databaseName);
+    } else {
+      throw new DatabaseNotExistException();
     }
   }
 
