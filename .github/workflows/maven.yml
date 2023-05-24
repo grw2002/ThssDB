@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: ThssDB CI
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: '8'
-        distribution: 'oracle'
+        distribution: 'temurin'
         cache: maven
     - name: Compilation (without format check)
       run: mvn clean package -DskipTests
