@@ -1,4 +1,7 @@
 # ThssDB-2023
+
+[![ThssDB CI](https://github.com/grw2002/ThssDB/actions/workflows/maven.yml/badge.svg)](https://github.com/grw2002/ThssDB/actions/workflows/maven.yml)
+
 ThssDB 2023
 
 ## 《数据库原理》2023春大作业要求
