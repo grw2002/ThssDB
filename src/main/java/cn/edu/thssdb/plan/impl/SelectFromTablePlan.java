@@ -19,17 +19,23 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
+import cn.edu.thssdb.query.QueryResult;
 
 public class SelectFromTablePlan extends LogicalPlan {
 
-  public String tableName;
+  QueryResult pendingQuery;
 
-  public SelectFromTablePlan() {
+  public SelectFromTablePlan(QueryResult queryResult) {
     super(LogicalPlanType.SELECT_FROM_TABLE);
+    this.pendingQuery = queryResult;
+  }
+
+  public QueryResult getPendingQuery() {
+    return pendingQuery;
   }
 
   @Override
   public String toString() {
-    return "SelectFromTablePlan{" + "databaseName='" + tableName + '\'' + '}';
+    return "SelectFromTablePlan{" + "databaseName='" + pendingQuery.toString() + '\'' + '}';
   }
 }
