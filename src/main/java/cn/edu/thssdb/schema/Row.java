@@ -31,4 +31,15 @@ public class Row implements Serializable {
     for (Entry e : entries) sj.add(e.toString());
     return sj.toString();
   }
+
+  public Row combine(Row poll) {
+    Entry[] entries = new Entry[this.entries.size() + poll.entries.size()];
+    for (int i = 0; i < this.entries.size(); i++) {
+      entries[i] = this.entries.get(i);
+    }
+    for (int i = 0; i < poll.entries.size(); i++) {
+      entries[i + this.entries.size()] = poll.entries.get(i);
+    }
+    return new Row(entries);
+  }
 }

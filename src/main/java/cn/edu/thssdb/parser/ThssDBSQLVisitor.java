@@ -21,8 +21,7 @@ package cn.edu.thssdb.parser;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
-import cn.edu.thssdb.plan.impl.SelectFromTablePlan;
+import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
@@ -32,6 +31,7 @@ import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
+import cn.edu.thssdb.type.ColumnType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +47,40 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   @Override
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     return new CreateDatabasePlan(ctx.databaseName().getText());
+  }
+
+  public LogicalPlan visitDropDbStmt(SQLParser.DropDbStmtContext ctx) {
+    return new DropDatabasePlan(ctx.databaseName().getText());
+  }
+
+  public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+    List<Column> columns = new ArrayList<>();
+    for (SQLParser.ColumnDefContext columnDefContext : ctx.columnDef()) {
+      String columnName = columnDefContext.columnName().getText();
+      String columnType = columnDefContext.typeName().getText();
+      int primary = 0;
+      boolean notnull = false;
+      for (SQLParser.ColumnConstraintContext columnConstraintContext :
+          columnDefContext.columnConstraint()) {
+        //         judge whether it's primary key
+        if (columnConstraintContext.K_PRIMARY() != null
+            && columnConstraintContext.K_KEY() != null) {
+          primary = 1;
+        } else if (columnConstraintContext.K_NOT() != null
+            && columnConstraintContext.K_NULL() != null) {
+          notnull = true;
+        }
+      }
+      ColumnType columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
+      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128));
+    }
+    return new CreateTablePlan(tableName, columns);
+  }
+
+  @Override
+  public LogicalPlan visitDropTableStmt(SQLParser.DropTableStmtContext ctx) {
+    return new DropTablePlan(ctx.tableName().getText());
   }
 
   @Override

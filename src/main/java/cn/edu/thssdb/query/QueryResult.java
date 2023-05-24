@@ -41,8 +41,14 @@ public class QueryResult {
   }
 
   public static Row combineRow(LinkedList<Row> rows) {
-    // TODO
-    return null;
+    if (rows.isEmpty()) {
+      return null;
+    }
+    Row row = rows.poll();
+    while (!rows.isEmpty()) {
+      row = row.combine(rows.poll());
+    }
+    return row;
   }
 
   public static Row filterRow(Row row, List<Integer> index) {
