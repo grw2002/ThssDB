@@ -61,9 +61,7 @@ public class Manager {
     }
   }
 
-  public void createTable(String TableName) throws RuntimeException{
-
-  }
+  public void createTable(String TableName) throws RuntimeException {}
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();

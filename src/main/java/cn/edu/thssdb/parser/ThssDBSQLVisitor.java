@@ -21,9 +21,9 @@ package cn.edu.thssdb.parser;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
+import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
-import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
@@ -50,11 +50,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     return new CreateDatabasePlan(ctx.databaseName().getText());
   }
-  public LogicalPlan visitDropDbStmt(SQLParser.DropDbStmtContext ctx){
-    return new DropDatabasePlan(ctx.databaseName().getText());
-  }
 
-  
   public LogicalPlan visitDropDbStmt(SQLParser.DropDbStmtContext ctx) {
     return new DropDatabasePlan(ctx.databaseName().getText());
   }
