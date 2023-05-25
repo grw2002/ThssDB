@@ -4,7 +4,7 @@ import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
-import cn.edu.thssdb.plan.impl.SelectFromTablePlan;
+import cn.edu.thssdb.plan.impl.SelectPlan;
 import cn.edu.thssdb.plan.impl.UseDatabasePlan;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;

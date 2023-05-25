@@ -74,7 +74,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         }
       }
       ColumnType columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
-      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128, tableName));
+      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128));
     }
     return new CreateTablePlan(tableName, columns);
   }
@@ -101,6 +101,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         throw new TableNotExistException();
       }
       tables.add(table);
+      //      System.out.println("add table " + table.tableName);
       metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
     }
     for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
@@ -110,6 +111,8 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         for (int i = 0; i < tables.size(); i++) {
           Table table = tables.get(i);
           Column column = table.findColumnByName(columnName);
+          //          System.out.println("find " + table.tableName + " " + columnName + " " +
+          // column);
           if (column == null) {
             continue;
           }
@@ -121,7 +124,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         String tableName = columnFullNameContext.tableName().getText();
         for (int i = 0; i < tables.size(); i++) {
           Table table = tables.get(i);
-          if (table.tableName == tableName) {
+          if (table.tableName.equals(tableName)) {
             Column column = table.findColumnByName(columnName);
             if (column == null) {
               // TODO

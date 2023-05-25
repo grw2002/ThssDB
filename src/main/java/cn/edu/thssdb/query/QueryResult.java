@@ -11,13 +11,16 @@ import java.util.*;
 public class QueryResult {
 
   public List<MetaInfo> metaInfos;
-  public QueryTable[] queryTables;
+  public List<QueryTable> queryTables;
   public List<Integer> index;
   private List<Cell> attrs;
 
   public static Pair<List<String>, List<List<String>>> makeResult(QueryResult queryResult) {
     List<LinkedList<Row>> allRows = queryResult.getMatchRows();
-    List<LinkedList<Row>> filteredRows = QueryResult.filterRow(allRows, queryResult.metaInfos);
+    List<LinkedList<Row>> filteredRows = QueryResult.filterColumns(allRows, queryResult.metaInfos);
+    for (LinkedList<Row> filteredRow : filteredRows) {
+      System.out.println(filteredRow.toString());
+    }
     List<String> left = new ArrayList<>();
     List<List<String>> right = new ArrayList<>();
     for (LinkedList<Row> filteredRow : filteredRows) {
@@ -25,7 +28,7 @@ public class QueryResult {
     }
     for (MetaInfo metaInfo : queryResult.metaInfos) {
       for (Column column : metaInfo.getColumns()) {
-        left.add(column.toString());
+        left.add(column.getName());
       }
     }
     return new Pair<>(left, right);
@@ -39,7 +42,7 @@ public class QueryResult {
     return result;
   }
 
-  public QueryResult(QueryTable[] queryTables, List<MetaInfo> metaInfos) {
+  public QueryResult(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
     // TODO
     this.metaInfos = metaInfos;
     this.queryTables = queryTables;
@@ -65,25 +68,24 @@ public class QueryResult {
   // TODO: Add Match Rules
   public List<LinkedList<Row>> getMatchRows() {
     // Cartesion Product
-    Queue<LinkedList<Row>> oldrows = new LinkedList<>();
-    Queue<LinkedList<Row>> newrows = new LinkedList<>();
-    Queue<LinkedList<Row>> tmp = null;
+    List<LinkedList<Row>> oldrows = new LinkedList<>();
+    List<LinkedList<Row>> newrows = new LinkedList<>();
+    List<LinkedList<Row>> tmp = null;
     oldrows.add(new LinkedList<>());
     for (QueryTable queryTable : queryTables) {
       while (queryTable.hasNext()) {
         Row row = queryTable.next();
-        while (!oldrows.isEmpty()) {
-          LinkedList<Row> rows = oldrows.remove();
-          LinkedList<Row> newRow = new LinkedList<>(rows);
+        for (LinkedList<Row> oldrow : oldrows) {
+          LinkedList<Row> newRow = new LinkedList<>(oldrow);
           newRow.add(row);
           newrows.add(newRow);
         }
-        // Swap
-        tmp = oldrows;
-        oldrows = newrows;
-        newrows = tmp;
-        newrows.clear();
       }
+      // Swap
+      tmp = oldrows;
+      oldrows = newrows;
+      newrows = tmp;
+      newrows.clear();
     }
     return (LinkedList) oldrows;
   }
@@ -93,12 +95,15 @@ public class QueryResult {
     for (Row row : rows) {
       entries.addAll(row.getEntries());
     }
-    return new Row((Entry[]) entries.toArray());
+    return new Row(entries.toArray(new Entry[entries.size()]));
   }
 
   // choose columns that metainfo contains
-  public static List<LinkedList<Row>> filterRow(
+  public static List<LinkedList<Row>> filterColumns(
       List<LinkedList<Row>> allrows, List<MetaInfo> metaInfos) {
+    //    for (MetaInfo metaInfo : metaInfos) {
+    //      System.out.println(metaInfo.getTableName() + metaInfo.getColumns().toString());
+    //    }
     List<LinkedList<Row>> result = new ArrayList<>();
     for (LinkedList<Row> rows : allrows) {
       Iterator<Row> rowIter = rows.iterator();
@@ -111,7 +116,8 @@ public class QueryResult {
         Entry[] newEntries = new Entry[metaInfo.getColumns().size()];
         for (int i = 0; i < metaInfo.getColumns().size(); i++) {
           Column column = metaInfo.getColumns().get(i);
-          newEntries[i] = entries.get(metaInfo.columnFind(column.getName()));
+          newEntries[i] = entries.get(column.getIndex());
+          //          System.out.println(column.getName() + column.getIndex() + entries.toString());
         }
         newRows.add(new Row(newEntries));
       }

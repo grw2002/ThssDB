@@ -6,13 +6,14 @@ import cn.edu.thssdb.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Table implements Iterable<Row> {
   ReentrantReadWriteLock lock;
   public String databaseName;
   public String tableName;
-  public ArrayList<Column> columns;
+  private ArrayList<Column> columns;
   public BPlusTree<Entry, Row> index;
   private int primaryIndex;
 
@@ -22,6 +23,18 @@ public class Table implements Iterable<Row> {
     this.tableName = tableName;
     this.columns = new ArrayList<>(Arrays.asList(columns));
     this.index = new BPlusTree<>();
+    for (Column column : this.columns) {
+      column.setTable(this);
+    }
+  }
+
+  public void addColumn(Column column) {
+    this.columns.add(column);
+    column.setTable(this);
+  }
+
+  public List<Column> getColumns() {
+    return columns;
   }
 
   private void recover() {
@@ -68,25 +81,25 @@ public class Table implements Iterable<Row> {
   }
 
   public int findColumnIndexByName(String name) {
-    for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getName() == name) {
-        return i;
-      }
+    Column column = findColumnByName(name);
+    if (column != null) {
+      return column.getIndex();
     }
     return -1;
   }
 
   public Column findColumnByName(String name) {
-    for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getName() == name) {
-        return columns.get(i);
+    //    System.out.println("find Column By Name:" + name + columns.toString());
+    for (Column column : columns) {
+      if (column.getName().equals(name)) {
+        return column;
       }
     }
     return null;
   }
 
-  private class TableIterator implements Iterator<Row> {
-    private Iterator<Pair<Entry, Row>> iterator;
+  private static class TableIterator implements Iterator<Row> {
+    private final Iterator<Pair<Entry, Row>> iterator;
 
     TableIterator(Table table) {
       this.iterator = table.index.iterator();

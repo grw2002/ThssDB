@@ -11,8 +11,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database {
 
-  private String name;
-  private HashMap<String, Table> tables;
+  private final String name;
+  private final HashMap<String, Table> tables;
   ReentrantReadWriteLock lock;
 
   public Database(String name) {
@@ -50,7 +50,7 @@ public class Database {
   }
 
   public QueryResult select(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
-    return new QueryResult((QueryTable[]) queryTables.toArray(), metaInfos);
+    return new QueryResult(queryTables, metaInfos);
     //    List<LinkedList<Row>> allRows = queryResult.allRows();
     //    List<LinkedList<Row>> filteredRows = QueryResult.filterRow(allRows,
     // queryResult.metaInfos);
