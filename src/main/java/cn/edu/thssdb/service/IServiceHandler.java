@@ -3,7 +3,7 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
-import cn.edu.thssdb.plan.impl.SelectFromTablePlan;
+import cn.edu.thssdb.plan.impl.SelectPlan;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
@@ -17,10 +17,12 @@ import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.utils.Global;
+import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class IServiceHandler implements IService.Iface {
@@ -66,11 +68,15 @@ public class IServiceHandler implements IService.Iface {
         manager.createDatabase(((CreateDatabasePlan) plan).getDatabaseName());
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case SELECT_FROM_TABLE:
-        QueryResult pendingQuery = ((SelectFromTablePlan) plan).getPendingQuery();
-        QueryResult result = manager.getCurrentDatabase().select(pendingQuery);
+        SelectPlan selectPlan = ((SelectPlan) plan);
+        QueryResult queryResult =
+            manager
+                .getCurrentDatabase()
+                .select(selectPlan.getQueryTables(), selectPlan.getMetaInfos());
+        Pair<List<String>, List<List<String>>> result = queryResult.makeResult(queryResult);
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
-        res.columnsList = result.getColumnsList();
-        res.rowList = result.getRowsList();
+        res.columnsList = result.left;
+        res.rowList = result.right;
         return res;
       default:
     }

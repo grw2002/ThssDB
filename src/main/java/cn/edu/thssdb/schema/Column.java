@@ -8,13 +8,16 @@ public class Column implements Comparable<Column> {
   private int primary;
   private boolean notNull;
   private int maxLength;
+  private String tableName;
 
-  public Column(String name, ColumnType type, int primary, boolean notNull, int maxLength) {
+  public Column(
+      String name, ColumnType type, int primary, boolean notNull, int maxLength, String tableName) {
     this.name = name;
     this.type = type;
     this.primary = primary;
     this.notNull = notNull;
     this.maxLength = maxLength;
+    this.tableName = tableName;
   }
 
   public int getPrimary() {

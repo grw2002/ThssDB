@@ -23,7 +23,6 @@ import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.query.MetaInfo;
-import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Database;
@@ -73,7 +72,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         }
       }
       ColumnType columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
-      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128));
+      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128, tableName));
     }
     return new CreateTablePlan(tableName, columns);
   }
@@ -132,8 +131,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         }
       }
     }
-    return new SelectFromTablePlan(
-        new QueryResult((QueryTable[]) queryTables.toArray(), metaInfos));
+    return new SelectPlan(queryTables, metaInfos);
   }
   // TODO: parser to more logical plan
 }

@@ -2,6 +2,7 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.TableExistsException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 
@@ -48,33 +49,15 @@ public class Database {
     tables.remove(tableName);
   }
 
-  public QueryResult select(QueryResult pendingQuery) {
-    QueryResult queryResult = pendingQuery;
-    Queue<LinkedList<Row>> oldrows = new LinkedList<>();
-    Queue<LinkedList<Row>> newrows = new LinkedList<>();
-    Queue<LinkedList<Row>> tmp;
-    oldrows.add(new LinkedList<>());
-    for (QueryTable queryTable : pendingQuery.queryTables) {
-      while (queryTable.hasNext()) {
-        Row row = queryTable.next();
-        while (!oldrows.isEmpty()) {
-          LinkedList<Row> rows = oldrows.remove();
-          LinkedList<Row> newRow = new LinkedList<>(rows);
-          newRow.add(row);
-          newrows.add(newRow);
-        }
-        // Swap
-        tmp = oldrows;
-        oldrows = newrows;
-        newrows = tmp;
-        newrows.clear();
-      }
-    }
-    for (LinkedList<Row> oldrow : oldrows) {
-      queryResult.result.right.add(
-          QueryResult.filterRow(QueryResult.combineRow(oldrow), pendingQuery.index));
-    }
-    return queryResult;
+  public QueryResult select(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
+    return new QueryResult((QueryTable[]) queryTables.toArray(), metaInfos);
+    //    List<LinkedList<Row>> allRows = queryResult.allRows();
+    //    List<LinkedList<Row>> filteredRows = QueryResult.filterRow(allRows,
+    // queryResult.metaInfos);
+    //    for (LinkedList<Row> filteredRow : filteredRows) {
+    //      QueryResult.combine(filteredRow);
+    //    }
+    //    return queryResult;
   }
 
   private void recover() {
