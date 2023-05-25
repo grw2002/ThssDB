@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Table implements Iterable<Row> {
   ReentrantReadWriteLock lock;
-  private String databaseName;
+  public String databaseName;
   public String tableName;
   public ArrayList<Column> columns;
   public BPlusTree<Entry, Row> index;
@@ -64,6 +64,24 @@ public class Table implements Iterable<Row> {
 
   private ArrayList<Row> deserialize() {
     // TODO
+    return null;
+  }
+
+  public int findColumnIndexByName(String name) {
+    for (int i = 0; i < columns.size(); i++) {
+      if (columns.get(i).getName() == name) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public Column findColumnByName(String name) {
+    for (int i = 0; i < columns.size(); i++) {
+      if (columns.get(i).getName() == name) {
+        return columns.get(i);
+      }
+    }
     return null;
   }
 

@@ -19,7 +19,6 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.schema.Column;
 
 import javax.swing.*;
@@ -29,12 +28,12 @@ import java.util.List;
 public class CreateTablePlan extends LogicalPlan {
 
   private String tableName;
-  private MetaInfo metaInfo;
+  private List<Column> columns;
 
-  public CreateTablePlan(String tableName, MetaInfo metaInfo) {
+  public CreateTablePlan(String tableName, List<Column> columns) {
     super(LogicalPlanType.CREATE_TABLE);
     this.tableName = tableName;
-    this.metaInfo = metaInfo;
+    this.columns = columns;
   }
 
   public String getTableName() {
@@ -42,12 +41,11 @@ public class CreateTablePlan extends LogicalPlan {
   }
 
   public List<Column> getColumns() {
-    return metaInfo.getColumns();
+    return columns;
   }
 
   public int getPrimaryIndex() {
-    List<Column> columns = metaInfo.getColumns();
-    for (int i = 0; i < metaInfo.getColumns().size(); i++) {
+    for (int i = 0; i < columns.size(); i++) {
       if (columns.get(i).getPrimary() == 1) {
         return i;
       }
@@ -58,7 +56,7 @@ public class CreateTablePlan extends LogicalPlan {
   @Override
   public String toString() {
     String columnInfo = "";
-    for (Column column : metaInfo.getColumns()) {
+    for (Column column : columns) {
       columnInfo += column.toString();
     }
     return "CreateTablePlan{" + "databaseName='" + tableName + "\', columns=" + columnInfo + '}';

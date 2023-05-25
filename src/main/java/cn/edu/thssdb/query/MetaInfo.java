@@ -10,7 +10,7 @@ public class MetaInfo {
   private String tableName;
   private List<Column> columns;
 
-  MetaInfo(String tableName, ArrayList<Column> columns) {
+  public MetaInfo(String tableName, ArrayList<Column> columns) {
     this.tableName = tableName;
     this.columns = columns;
   }
@@ -19,8 +19,7 @@ public class MetaInfo {
     return columns;
   }
 
-  int columnFind(String name) {
-    // TODO
+  public int columnFind(String name) {
     for (int i = 0; i < columns.size(); i++) {
       if (columns.get(i).getName() == name) {
         return i;

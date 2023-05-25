@@ -6,6 +6,8 @@ import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.CreateTablePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.plan.impl.UseDatabasePlan;
+import cn.edu.thssdb.plan.impl.SelectFromTablePlan;
+import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;
@@ -60,10 +62,10 @@ public class IServiceHandler implements IService.Iface {
           StatusUtil.fail("You are not connected. Please connect first."), false);
     }
     // TODO: implement execution logic
-    LogicalPlan plan = LogicalGenerator.generate(req.statement);
+    LogicalPlan plan = LogicalGenerator.generate(req.statement, manager);
+    System.out.println("[DEBUG] " + plan);
     switch (plan.getType()) {
       case CREATE_DB:
-        System.out.println("[DEBUG] " + plan);
         manager.createDatabase(((CreateDatabasePlan) plan).getDatabaseName());
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case DROP_DB:
@@ -78,6 +80,13 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
+      case SELECT_FROM_TABLE:
+        QueryResult pendingQuery = ((SelectFromTablePlan) plan).getPendingQuery();
+        QueryResult result = manager.getCurrentDatabase().select(pendingQuery);
+        ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
+        res.columnsList = result.getColumnsList();
+        res.rowList = result.getRowsList();
+        return res;
       default:
     }
     return null;
