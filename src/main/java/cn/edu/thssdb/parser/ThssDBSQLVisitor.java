@@ -22,6 +22,8 @@ import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
+import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.schema.Column;
