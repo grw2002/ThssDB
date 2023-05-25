@@ -3,11 +3,12 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.type.ColumnType;
 
 public class Column implements Comparable<Column> {
-  private String name;
-  private ColumnType type;
-  private int primary;
-  private boolean notNull;
-  private int maxLength;
+  private final String name;
+  private final ColumnType type;
+  private final int primary;
+  private final boolean notNull;
+  private final int maxLength;
+  private Table table;
 
   public Column(String name, ColumnType type, int primary, boolean notNull, int maxLength) {
     this.name = name;
@@ -15,6 +16,18 @@ public class Column implements Comparable<Column> {
     this.primary = primary;
     this.notNull = notNull;
     this.maxLength = maxLength;
+    this.table = null;
+  }
+
+  public void setTable(Table table) {
+    this.table = table;
+  }
+
+  public int getIndex() {
+    if (table == null) {
+      return -1;
+    }
+    return table.getColumns().indexOf(this);
   }
 
   public int getPrimary() {

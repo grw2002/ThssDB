@@ -25,7 +25,6 @@ import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.query.MetaInfo;
-import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Database;
@@ -102,6 +101,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         throw new TableNotExistException();
       }
       tables.add(table);
+      //      System.out.println("add table " + table.tableName);
       metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
     }
     for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
@@ -111,6 +111,8 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         for (int i = 0; i < tables.size(); i++) {
           Table table = tables.get(i);
           Column column = table.findColumnByName(columnName);
+          //          System.out.println("find " + table.tableName + " " + columnName + " " +
+          // column);
           if (column == null) {
             continue;
           }
@@ -122,7 +124,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         String tableName = columnFullNameContext.tableName().getText();
         for (int i = 0; i < tables.size(); i++) {
           Table table = tables.get(i);
-          if (table.tableName == tableName) {
+          if (table.tableName.equals(tableName)) {
             Column column = table.findColumnByName(columnName);
             if (column == null) {
               // TODO
@@ -134,8 +136,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         }
       }
     }
-    return new SelectFromTablePlan(
-        new QueryResult((QueryTable[]) queryTables.toArray(), metaInfos));
+    return new SelectPlan(queryTables, metaInfos);
   }
   // TODO: parser to more logical plan
 }

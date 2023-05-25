@@ -15,13 +15,17 @@ public class MetaInfo {
     this.columns = columns;
   }
 
+  public String getTableName() {
+    return tableName;
+  }
+
   public List<Column> getColumns() {
     return columns;
   }
 
   public int columnFind(String name) {
     for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getName() == name) {
+      if (columns.get(i).getName().equals(name)) {
         return i;
       }
     }

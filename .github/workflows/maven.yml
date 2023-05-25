@@ -29,3 +29,5 @@ jobs:
         cache: maven
     - name: Compilation (without format check)
       run: mvn clean package -DskipTests
+    - name: Test
+      run: mvn test

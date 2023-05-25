@@ -19,23 +19,33 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.query.QueryResult;
+import cn.edu.thssdb.query.MetaInfo;
+import cn.edu.thssdb.query.QueryTable;
 
-public class SelectFromTablePlan extends LogicalPlan {
+import java.util.List;
 
-  QueryResult pendingQuery;
+public class SelectPlan extends LogicalPlan {
 
-  public SelectFromTablePlan(QueryResult queryResult) {
-    super(LogicalPlanType.SELECT_FROM_TABLE);
-    this.pendingQuery = queryResult;
+  List<QueryTable> queryTables;
+  List<MetaInfo> metaInfos;
+  //  QueryResult pendingQuery;
+
+  public List<QueryTable> getQueryTables() {
+    return queryTables;
   }
 
-  public QueryResult getPendingQuery() {
-    return pendingQuery;
+  public List<MetaInfo> getMetaInfos() {
+    return metaInfos;
+  }
+
+  public SelectPlan(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
+    super(LogicalPlanType.SELECT_FROM_TABLE);
+    this.queryTables = queryTables;
+    this.metaInfos = metaInfos;
   }
 
   @Override
   public String toString() {
-    return "SelectFromTablePlan{" + "databaseName='" + pendingQuery.toString() + '\'' + '}';
+    return "SelectPlan{" + "databaseName='" + metaInfos.toString() + '\'' + '}';
   }
 }
