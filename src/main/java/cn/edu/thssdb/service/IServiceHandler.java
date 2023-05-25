@@ -3,6 +3,7 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.plan.impl.CreateTablePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.plan.impl.UseDatabasePlan;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
@@ -72,6 +73,9 @@ public class IServiceHandler implements IService.Iface {
       case USE_DB:
         System.out.println("[DEBUG] " + plan);
         manager.switchDatabase(((UseDatabasePlan) plan).getDatabaseName());
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case CREATE_TABLE:
+        System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       default:
