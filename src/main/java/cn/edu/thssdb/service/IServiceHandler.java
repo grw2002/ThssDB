@@ -3,7 +3,9 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.plan.impl.SelectFromTablePlan;
+import cn.edu.thssdb.plan.impl.UseDatabasePlan;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
@@ -65,6 +67,18 @@ public class IServiceHandler implements IService.Iface {
       case CREATE_DB:
         manager.createDatabase(((CreateDatabasePlan) plan).getDatabaseName());
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case DROP_DB:
+        System.out.println("[DEBUG] " + plan);
+        manager.deleteDatabase(((DropDatabasePlan) plan).getDatabaseName());
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case USE_DB:
+        System.out.println("[DEBUG] " + plan);
+        manager.switchDatabase(((UseDatabasePlan) plan).getDatabaseName());
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case CREATE_TABLE:
+        System.out.println("[DEBUG] " + plan);
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case SELECT_FROM_TABLE:
         QueryResult pendingQuery = ((SelectFromTablePlan) plan).getPendingQuery();
         QueryResult result = manager.getCurrentDatabase().select(pendingQuery);

@@ -40,7 +40,7 @@ public class Manager {
     currentDatabase = newDB;
   }
 
-  private void deleteDatabase(String databaseName) throws RuntimeException {
+  public void deleteDatabase(String databaseName) throws RuntimeException {
     // TODO
     if (databases.containsKey(databaseName)) {
       if (currentDatabase.getName() == databaseName) {
@@ -60,6 +60,8 @@ public class Manager {
       throw new DatabaseNotExistException();
     }
   }
+
+  public void createTable(String TableName) throws RuntimeException {}
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
