@@ -81,14 +81,16 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     List<Column> columns = new ArrayList<>();
+
     for (SQLParser.ColumnDefContext columnDefContext : ctx.columnDef()) {
       String columnName = columnDefContext.columnName().getText();
       String columnType = columnDefContext.typeName().getText();
       int primary = 0;
       boolean notnull = false;
+
       for (SQLParser.ColumnConstraintContext columnConstraintContext :
           columnDefContext.columnConstraint()) {
-        //         judge whether it's primary key
+        // judge whether it's primary key
         if (columnConstraintContext.K_PRIMARY() != null
             && columnConstraintContext.K_KEY() != null) {
           primary = 1;
@@ -97,8 +99,29 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
           notnull = true;
         }
       }
-      ColumnType columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
-      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, 128));
+
+      ColumnType columnTypeEnum;
+      int stringLength = 128; // 默认字符串长度
+
+      if (columnType.toUpperCase().contains("STRING")) {
+        columnTypeEnum = ColumnType.STRING;
+        // 从 columnType 字符串中提取字符串长度
+        int startIndex = columnType.indexOf("(");
+        int endIndex = columnType.indexOf(")");
+        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+          String lengthString = columnType.substring(startIndex + 1, endIndex);
+          try {
+            stringLength = Integer.parseInt(lengthString);
+          } catch (NumberFormatException e) {
+            // 处理无效的字符串长度，默认使用默认长度
+            stringLength = 128;
+          }
+        }
+      } else {
+        columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
+      }
+
+      columns.add(new Column(columnName, columnTypeEnum, primary, notnull, stringLength));
     }
     return new CreateTablePlan(tableName, columns);
   }

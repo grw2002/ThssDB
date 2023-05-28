@@ -67,7 +67,14 @@ public class Manager {
     return new ArrayList<>(databases.keySet());
   }
 
-  public void createTable(String TableName) throws RuntimeException {}
+  public void createTable(String tableName, List<Column> columns) throws RuntimeException {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    Column[] columnArray = columns.toArray(new Column[columns.size()]);
+    currentDatabase.create(tableName, columnArray);
+  }
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();

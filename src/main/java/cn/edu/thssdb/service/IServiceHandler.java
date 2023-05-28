@@ -2,10 +2,7 @@ package cn.edu.thssdb.service;
 
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
-import cn.edu.thssdb.plan.impl.DropDatabasePlan;
-import cn.edu.thssdb.plan.impl.SelectPlan;
-import cn.edu.thssdb.plan.impl.UseDatabasePlan;
+import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
@@ -24,7 +21,6 @@ import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -88,12 +84,17 @@ public class IServiceHandler implements IService.Iface {
         resp.columnsList = Arrays.asList("Databases", "Status");
         resp.rowList =
             databases.stream()
-                .map(dbName -> Arrays.asList(dbName, dbName.equals(currentDbName) ? "IN USE" : "NOT IN USE"))
+                .map(
+                    dbName ->
+                        Arrays.asList(
+                            dbName, dbName.equals(currentDbName) ? "IN USE" : "NOT IN USE"))
                 .collect(Collectors.toList());
         return resp;
 
       case CREATE_TABLE:
         System.out.println("[DEBUG] " + plan);
+        CreateTablePlan createTablePlan = (CreateTablePlan) plan;
+        manager.createTable(createTablePlan.getTableName(), createTablePlan.getColumns());
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case SELECT_FROM_TABLE:
         SelectPlan selectPlan = ((SelectPlan) plan);
