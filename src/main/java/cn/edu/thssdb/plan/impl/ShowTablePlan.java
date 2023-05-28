@@ -22,7 +22,7 @@ import cn.edu.thssdb.plan.LogicalPlan;
 
 public class ShowTablePlan extends LogicalPlan {
 
-  private String tableName;
+  private final String tableName;
 
   public ShowTablePlan(String tableName) {
     super(LogicalPlanType.SHOW_TABLE);
@@ -35,6 +35,6 @@ public class ShowTablePlan extends LogicalPlan {
 
   @Override
   public String toString() {
-    return "ShowTablePlan{" + "databaseName='" + tableName + '\'' + '}';
+    return "ShowTablePlan{" + "tableName='" + tableName + '\'' + '}';
   }
 }

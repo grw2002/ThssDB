@@ -14,7 +14,9 @@ import cn.edu.thssdb.rpc.thrift.GetTimeReq;
 import cn.edu.thssdb.rpc.thrift.GetTimeResp;
 import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
+import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Manager;
+import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
@@ -80,16 +82,17 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         List<String> databases = manager.showDatabases();
         String currentDbName = manager.getCurrentDatabase().getName();
-        ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
-        resp.columnsList = Arrays.asList("Databases", "Status");
-        resp.rowList =
+        ExecuteStatementResp showDatabaseResp =
+            new ExecuteStatementResp(StatusUtil.success(), true);
+        showDatabaseResp.columnsList = Arrays.asList("Databases", "Status");
+        showDatabaseResp.rowList =
             databases.stream()
                 .map(
                     dbName ->
                         Arrays.asList(
                             dbName, dbName.equals(currentDbName) ? "IN USE" : "NOT IN USE"))
                 .collect(Collectors.toList());
-        return resp;
+        return showDatabaseResp;
 
       case CREATE_TABLE:
         System.out.println("[DEBUG] " + plan);
@@ -101,6 +104,27 @@ public class IServiceHandler implements IService.Iface {
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         manager.dropTable(dropTablePlan.getTableName(), dropTablePlan.isIfExists());
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case SHOW_TABLE:
+        System.out.println("[DEBUG] " + plan);
+        ShowTablePlan showTablePlan = (ShowTablePlan) plan;
+        List<Column> columns = manager.showTable(showTablePlan.getTableName());
+        ExecuteStatementResp showTableResp = new ExecuteStatementResp(StatusUtil.success(), true);
+        showTableResp.columnsList =
+            Arrays.asList("Columns", "Type", "Primary", "Not Null", "Max Length(String)");
+        showTableResp.rowList =
+            columns.stream()
+                .map(
+                    column ->
+                        Arrays.asList(
+                            column.getName(),
+                            column.getType().toString(),
+                            (column.getPrimary() != 0) ? "PRIMARY KEY" : "NOT PRIMARY",
+                            (column.getNotNull() == true) ? "NOT NULL" : "NULL",
+                            (column.getType() == ColumnType.STRING)
+                                ? String.valueOf(column.getMaxLength())
+                                : "None"))
+                .collect(Collectors.toList());
+        return showTableResp;
 
       case SELECT_FROM_TABLE:
         SelectPlan selectPlan = ((SelectPlan) plan);

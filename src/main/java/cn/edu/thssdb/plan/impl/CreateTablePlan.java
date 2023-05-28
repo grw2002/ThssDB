@@ -58,6 +58,7 @@ public class CreateTablePlan extends LogicalPlan {
     String columnInfo = "";
     for (Column column : columns) {
       columnInfo += column.toString();
+      columnInfo += ";";
     }
     return "CreateTablePlan{" + "databaseName='" + tableName + "\', columns=" + columnInfo + '}';
   }

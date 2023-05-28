@@ -35,7 +35,9 @@ import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
@@ -81,21 +83,23 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     List<Column> columns = new ArrayList<>();
+    Set<String> primaryKeys = new HashSet<>();
+
+    if (ctx.tableConstraint() != null) {
+      for (SQLParser.ColumnNameContext columnNameContext : ctx.tableConstraint().columnName()) {
+        primaryKeys.add(columnNameContext.getText());
+      }
+    }
 
     for (SQLParser.ColumnDefContext columnDefContext : ctx.columnDef()) {
       String columnName = columnDefContext.columnName().getText();
       String columnType = columnDefContext.typeName().getText();
-      int primary = 0;
+      int primary = primaryKeys.contains(columnName) ? 1 : 0;
       boolean notnull = false;
 
       for (SQLParser.ColumnConstraintContext columnConstraintContext :
           columnDefContext.columnConstraint()) {
-        // judge whether it's primary key
-        if (columnConstraintContext.K_PRIMARY() != null
-            && columnConstraintContext.K_KEY() != null) {
-          primary = 1;
-        } else if (columnConstraintContext.K_NOT() != null
-            && columnConstraintContext.K_NULL() != null) {
+        if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
           notnull = true;
         }
       }
@@ -131,6 +135,12 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     String tableName = ctx.tableName().getText();
     boolean ifExists = ctx.K_IF() != null && ctx.K_EXISTS() != null;
     return new DropTablePlan(tableName, ifExists);
+  }
+
+  @Override
+  public LogicalPlan visitShowTableStmt(SQLParser.ShowTableStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+    return new ShowTablePlan(tableName);
   }
 
   @Override

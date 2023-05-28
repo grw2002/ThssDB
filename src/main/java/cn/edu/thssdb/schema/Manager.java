@@ -86,6 +86,15 @@ public class Manager {
     }
   }
 
+  public List<Column> showTable(String tableName) {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    List<Column> columns = currentDatabase.getTableColumns(tableName);
+    return columns;
+  }
+
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
