@@ -23,9 +23,12 @@ import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class IServiceHandler implements IService.Iface {
 
@@ -77,10 +80,18 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         manager.switchDatabase(((UseDatabasePlan) plan).getDatabaseName());
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case SHOW_DB:
+        System.out.println("[DEBUG] " + plan);
+        List<String> databases = manager.showDatabases();
+        ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
+        resp.columnsList = Arrays.asList("Databases");
+        resp.rowList =
+            databases.stream().map(Collections::singletonList).collect(Collectors.toList());
+        return resp;
+
       case CREATE_TABLE:
         System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
-
       case SELECT_FROM_TABLE:
         SelectPlan selectPlan = ((SelectPlan) plan);
         QueryResult queryResult =

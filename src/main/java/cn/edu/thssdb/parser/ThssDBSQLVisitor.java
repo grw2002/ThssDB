@@ -46,14 +46,33 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
+  public LogicalPlan visitCreateUserStmt(SQLParser.CreateUserStmtContext ctx) {
+    return new CreateUserPlan(ctx.userName().getText(), ctx.password().getText());
+  }
+
+  @Override
+  public LogicalPlan visitDropUserStmt(SQLParser.DropUserStmtContext ctx) {
+    boolean ifExists = ctx.K_IF() != null && ctx.K_EXISTS() != null;
+    return new DropUserPlan(ctx.userName().getText(), ifExists);
+  }
+
+  @Override
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     return new CreateDatabasePlan(ctx.databaseName().getText());
   }
 
+  @Override
   public LogicalPlan visitDropDbStmt(SQLParser.DropDbStmtContext ctx) {
-    return new DropDatabasePlan(ctx.databaseName().getText());
+    boolean ifExists = ctx.K_IF() != null && ctx.K_EXISTS() != null;
+    return new DropDatabasePlan(ctx.databaseName().getText(), ifExists);
   }
 
+  @Override
+  public LogicalPlan visitShowDbStmt(SQLParser.ShowDbStmtContext ctx) {
+    return new ShowDatabasesPlan();
+  }
+
+  @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     List<Column> columns = new ArrayList<>();

@@ -3,7 +3,9 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
@@ -59,6 +61,10 @@ public class Manager {
     } else {
       throw new DatabaseNotExistException();
     }
+  }
+
+  public List<String> showDatabases() throws RuntimeException {
+    return new ArrayList<>(databases.keySet());
   }
 
   public void createTable(String TableName) throws RuntimeException {}
