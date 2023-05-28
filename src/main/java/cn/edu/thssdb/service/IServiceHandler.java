@@ -96,6 +96,12 @@ public class IServiceHandler implements IService.Iface {
         CreateTablePlan createTablePlan = (CreateTablePlan) plan;
         manager.createTable(createTablePlan.getTableName(), createTablePlan.getColumns());
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case DROP_TABLE:
+        System.out.println("[DEBUG] " + plan);
+        DropTablePlan dropTablePlan = (DropTablePlan) plan;
+        manager.dropTable(dropTablePlan.getTableName(), dropTablePlan.isIfExists());
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case SELECT_FROM_TABLE:
         SelectPlan selectPlan = ((SelectPlan) plan);
         QueryResult queryResult =

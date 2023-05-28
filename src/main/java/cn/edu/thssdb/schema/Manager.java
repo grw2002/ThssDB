@@ -76,6 +76,16 @@ public class Manager {
     currentDatabase.create(tableName, columnArray);
   }
 
+  public void dropTable(String tableName, boolean ifExists) {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    if (!ifExists) {
+      currentDatabase.drop(tableName);
+    }
+  }
+
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 

@@ -22,19 +22,25 @@ import cn.edu.thssdb.plan.LogicalPlan;
 
 public class DropTablePlan extends LogicalPlan {
 
-  private String tableName;
+  private final String tableName;
+  private final boolean ifExists;
 
-  public DropTablePlan(String tableName) {
-    super(LogicalPlanType.DROP_TABLE);
+  public DropTablePlan(String tableName, boolean ifExists) {
+    super(LogicalPlan.LogicalPlanType.DROP_TABLE);
     this.tableName = tableName;
+    this.ifExists = ifExists;
   }
 
   public String getTableName() {
     return tableName;
   }
 
+  public boolean isIfExists() {
+    return ifExists;
+  }
+
   @Override
   public String toString() {
-    return "DropTablePlan{" + "tableName='" + tableName + '\'' + '}';
+    return "DropTablePlan{" + "tableName='" + tableName + '\'' + ", ifExists=" + ifExists + '}';
   }
 }

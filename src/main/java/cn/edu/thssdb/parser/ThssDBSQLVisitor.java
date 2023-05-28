@@ -128,7 +128,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   @Override
   public LogicalPlan visitDropTableStmt(SQLParser.DropTableStmtContext ctx) {
-    return new DropTablePlan(ctx.tableName().getText());
+    String tableName = ctx.tableName().getText();
+    boolean ifExists = ctx.K_IF() != null && ctx.K_EXISTS() != null;
+    return new DropTablePlan(tableName, ifExists);
   }
 
   @Override
