@@ -83,10 +83,13 @@ public class IServiceHandler implements IService.Iface {
       case SHOW_DB:
         System.out.println("[DEBUG] " + plan);
         List<String> databases = manager.showDatabases();
+        String currentDbName = manager.getCurrentDatabase().getName();
         ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
-        resp.columnsList = Arrays.asList("Databases");
+        resp.columnsList = Arrays.asList("Databases", "Status");
         resp.rowList =
-            databases.stream().map(Collections::singletonList).collect(Collectors.toList());
+            databases.stream()
+                .map(dbName -> Arrays.asList(dbName, dbName.equals(currentDbName) ? "IN USE" : "NOT IN USE"))
+                .collect(Collectors.toList());
         return resp;
 
       case CREATE_TABLE:

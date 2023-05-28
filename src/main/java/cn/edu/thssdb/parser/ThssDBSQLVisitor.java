@@ -73,6 +73,11 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
+  public LogicalPlan visitUseDbStmt(SQLParser.UseDbStmtContext ctx) {
+    return new UseDatabasePlan(ctx.databaseName().getText());
+  }
+
+  @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     List<Column> columns = new ArrayList<>();
