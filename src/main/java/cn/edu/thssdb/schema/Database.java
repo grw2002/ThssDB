@@ -26,6 +26,14 @@ public class Database {
     return name;
   }
 
+  public List<Column> getTableColumns(String tableName) {
+    Table table = findTableByName(tableName);
+    if (table == null) {
+      throw new RuntimeException("Table " + tableName + " does not exist");
+    }
+    return table.getColumns();
+  }
+
   public Table findTableByName(String tableName) {
     return tables.get(tableName);
   }

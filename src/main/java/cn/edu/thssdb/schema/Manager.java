@@ -3,7 +3,9 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
@@ -61,7 +63,37 @@ public class Manager {
     }
   }
 
-  public void createTable(String TableName) throws RuntimeException {}
+  public List<String> showDatabases() throws RuntimeException {
+    return new ArrayList<>(databases.keySet());
+  }
+
+  public void createTable(String tableName, List<Column> columns) throws RuntimeException {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    Column[] columnArray = columns.toArray(new Column[columns.size()]);
+    currentDatabase.create(tableName, columnArray);
+  }
+
+  public void dropTable(String tableName, boolean ifExists) {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    if (!ifExists) {
+      currentDatabase.drop(tableName);
+    }
+  }
+
+  public List<Column> showTable(String tableName) {
+    if (currentDatabase == null) {
+      throw new RuntimeException("No database selected");
+    }
+
+    List<Column> columns = currentDatabase.getTableColumns(tableName);
+    return columns;
+  }
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();

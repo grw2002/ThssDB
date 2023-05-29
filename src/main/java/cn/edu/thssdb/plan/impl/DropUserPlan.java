@@ -20,21 +20,27 @@ package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
 
-public class ShowTablePlan extends LogicalPlan {
+public class DropUserPlan extends LogicalPlan {
 
-  private final String tableName;
+  private String userName;
+  private boolean ifExists;
 
-  public ShowTablePlan(String tableName) {
-    super(LogicalPlanType.SHOW_TABLE);
-    this.tableName = tableName;
+  public DropUserPlan(String userName, boolean ifExists) {
+    super(LogicalPlanType.DROP_USER);
+    this.userName = userName;
+    this.ifExists = ifExists;
   }
 
-  public String getTableName() {
-    return tableName;
+  public String getUserName() {
+    return userName;
+  }
+
+  public boolean isIfExists() {
+    return ifExists;
   }
 
   @Override
   public String toString() {
-    return "ShowTablePlan{" + "tableName='" + tableName + '\'' + '}';
+    return "DropUserPlan{" + "userName='" + userName + '\'' + ", ifExists=" + ifExists + '}';
   }
 }

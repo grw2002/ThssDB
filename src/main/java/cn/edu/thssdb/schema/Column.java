@@ -38,6 +38,18 @@ public class Column implements Comparable<Column> {
     return name;
   }
 
+  public ColumnType getType() {
+    return type;
+  }
+
+  public boolean getNotNull() {
+    return notNull;
+  }
+
+  public int getMaxLength() {
+    return maxLength;
+  }
+
   @Override
   public int compareTo(Column e) {
     return name.compareTo(e.name);
