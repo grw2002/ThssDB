@@ -3,13 +3,14 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.utils.Pair;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Table implements Iterable<Row> {
+public class Table implements Iterable<Row>, Serializable {
   ReentrantReadWriteLock lock;
   public String databaseName;
   public String tableName;

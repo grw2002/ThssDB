@@ -81,7 +81,7 @@ public class IServiceHandler implements IService.Iface {
       case SHOW_DB:
         System.out.println("[DEBUG] " + plan);
         List<String> databases = manager.showDatabases();
-        String currentDbName = manager.getCurrentDatabase().getName();
+        String currentDbName = manager.getCurrentDatabaseName();
         ExecuteStatementResp showDatabaseResp =
             new ExecuteStatementResp(StatusUtil.success(), true);
         showDatabaseResp.columnsList = Arrays.asList("Databases", "Status");
