@@ -6,10 +6,11 @@ import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Database {
+public class Database implements Serializable {
 
   private final String name;
   private final HashMap<String, Table> tables;
