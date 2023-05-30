@@ -15,7 +15,7 @@ public class Table implements Iterable<Row>, Serializable {
   public String databaseName;
   public String tableName;
   private ArrayList<Column> columns;
-  public BPlusTree<Entry, Row> index;
+  public transient BPlusTree<Entry, Row> index;
   private int primaryIndex;
 
   public Table(String databaseName, String tableName, Column[] columns) {
