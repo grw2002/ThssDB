@@ -36,18 +36,48 @@ public class Table implements Iterable<Row>, Serializable {
   }
 
   public void dropColumn(String columnName) {
-    boolean dropFlag = false;
+    boolean findFlag = false;
     Column column;
     for (Iterator<Column> iterator = columns.iterator(); iterator.hasNext(); ) {
       column = iterator.next();
       if (column.getName().equals(columnName)) {
         iterator.remove();
-        dropFlag = true;
+        findFlag = true;
         break;
       }
     }
 
-    if (!dropFlag) {
+    if (!findFlag) {
+      throw new ColumnNotExistException();
+    }
+  }
+
+  public void alterType(String columnName, String newColumnType) {
+    boolean findFlag = false;
+    for (Column column : columns) {
+      if (column.getName().equals(columnName)) {
+        column.setType(newColumnType);
+        findFlag = true;
+        break;
+      }
+    }
+
+    if (!findFlag) {
+      throw new ColumnNotExistException();
+    }
+  }
+
+  public void alterName(String columnName, String newColumnName) {
+    boolean findFlag = false;
+    for (Column column : columns) {
+      if (column.getName().equals(columnName)) {
+        column.setName(newColumnName);
+        findFlag = true;
+        break;
+      }
+    }
+
+    if (!findFlag) {
       throw new ColumnNotExistException();
     }
   }

@@ -162,6 +162,10 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitAlterTableStmt(SQLParser.AlterTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     Column column = null;
+    String newColumnName = null;
+    String newColumnType = null;
+
+    // columnType.INT -> default, has no meaning
 
     if (ctx.K_ADD() != null) {
       if (ctx.columnDef() != null) {
@@ -174,23 +178,39 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
               "Adding a column with NOT NULL constraint is not allowed if the table is not empty.");
         }
 
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_COLUMN, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.ADD_COLUMN, column, null, null);
       } else if (ctx.tableConstraint() != null) {
         // 添加约束
         // TODO
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_CONSTRAINT, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.ADD_CONSTRAINT, column, null, null);
       }
     } else if (ctx.K_DROP() != null) {
       if (ctx.columnName() != null) {
         // 删除列
-        String columnName = ctx.columnName().getText();
+        String columnName = ctx.columnName(0).getText();
         column = new Column(columnName, ColumnType.INT, 0, false, 128);
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_COLUMN, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.DROP_COLUMN, column, null, null);
       } else if (ctx.tableConstraint() != null) {
         // 删除约束
         // TODO
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column, null, null);
       }
+    } else if (ctx.K_ALTER() != null) {
+      String columnName = ctx.columnName(0).getText();
+      newColumnType = ctx.typeName().getText();
+      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      return new AlterTablePlan(
+          tableName, AlterTablePlan.Operation.ALTER_COLUMN, column, newColumnType, null);
+    } else if (ctx.K_RENAME() != null) {
+      String columnName = ctx.columnName(0).getText();
+      newColumnName = ctx.columnName(1).getText();
+      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      return new AlterTablePlan(
+          tableName, AlterTablePlan.Operation.RENAME_COLUMN, column, null, newColumnName);
     }
 
     return null;

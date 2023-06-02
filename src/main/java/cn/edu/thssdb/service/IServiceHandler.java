@@ -137,6 +137,18 @@ public class IServiceHandler implements IService.Iface {
           case DROP_COLUMN:
             manager.dropColumn(alterTablePlan.getTableName(), alterTablePlan.getColumnName());
             break;
+          case ALTER_COLUMN:
+            manager.alterColumnType(
+                alterTablePlan.getTableName(),
+                alterTablePlan.getColumnName(),
+                alterTablePlan.getNewColumnType());
+            break;
+          case RENAME_COLUMN:
+            manager.renameColumn(
+                alterTablePlan.getTableName(),
+                alterTablePlan.getColumnName(),
+                alterTablePlan.getNewColumnName());
+            break;
           case ADD_CONSTRAINT:
             // TODO: 需要在AlterTablePlan中添加一个getConstraint方法来获取约束，然后调用添加约束的方法
             // manager.addConstraint(alterTablePlan.getTableName(), alterTablePlan.getConstraint());

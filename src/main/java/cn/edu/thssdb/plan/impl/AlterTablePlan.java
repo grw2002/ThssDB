@@ -25,6 +25,8 @@ public class AlterTablePlan extends LogicalPlan {
   public enum Operation {
     ADD_COLUMN,
     DROP_COLUMN,
+    ALTER_COLUMN,
+    RENAME_COLUMN,
     ADD_CONSTRAINT,
     DROP_CONSTRAINT
   }
@@ -32,7 +34,8 @@ public class AlterTablePlan extends LogicalPlan {
   private String tableName;
   private Operation operation;
   private Column column;
-  // private String columnName;
+  private String newColumnName; // 用于RENAME COLUMN操作
+  private String newColumnType; // 用于ALTER COLUMN操作
   // private TableConstraint constraint;
 
   // ... getters and setters ...
@@ -40,26 +43,41 @@ public class AlterTablePlan extends LogicalPlan {
     super(LogicalPlanType.ALTER_TABLE);
   }
 
-  public AlterTablePlan(String tableName, Operation operation, Column column) {
+  public AlterTablePlan(
+      String tableName,
+      Operation operation,
+      Column column,
+      String newColumnType,
+      String newColumnName) {
     super(LogicalPlanType.ALTER_TABLE);
     this.tableName = tableName;
     this.operation = operation;
     this.column = column;
+    this.newColumnName = newColumnName;
+    this.newColumnType = newColumnType;
   }
 
   public String getTableName() {
-    return this.tableName;
+    return tableName;
   }
 
   public Operation getOperation() {
-    return this.operation;
+    return operation;
   }
 
   public Column getColumn() {
-    return this.column;
+    return column;
   }
 
   public String getColumnName() {
-    return this.column.getName();
+    return column.getName();
+  }
+
+  public String getNewColumnType() {
+    return newColumnType;
+  }
+
+  public String getNewColumnName() {
+    return newColumnName;
   }
 }

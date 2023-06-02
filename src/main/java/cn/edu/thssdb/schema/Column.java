@@ -5,8 +5,8 @@ import cn.edu.thssdb.type.ColumnType;
 import java.io.Serializable;
 
 public class Column implements Comparable<Column>, Serializable {
-  private final String name;
-  private final ColumnType type;
+  private String name;
+  private ColumnType type;
   private final int primary;
   private final boolean notNull;
   private final int maxLength;
@@ -50,6 +50,14 @@ public class Column implements Comparable<Column>, Serializable {
 
   public int getMaxLength() {
     return maxLength;
+  }
+
+  public void setType(String newColumnType) {
+    this.type = ColumnType.valueOf(newColumnType);
+  }
+
+  public void setName(String newColumnName) {
+    this.name = newColumnName;
   }
 
   @Override
