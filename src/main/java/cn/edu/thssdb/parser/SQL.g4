@@ -75,7 +75,7 @@ alterTableStmt:
     K_ALTER K_TABLE tableName
         ( K_ADD K_COLUMN? columnDef
         | K_DROP K_COLUMN? columnName
-        | K_ADD tableConstraint
+        | K_ADD K_CONSTRAINT tableConstraint
         )
     ;
 
@@ -204,6 +204,7 @@ K_ALTER: A L T E R;
 K_AS : A S;
 K_BY : B Y;
 K_COLUMN : C O L U M N;
+K_CONSTRAINT : C O N S T R A I N T;
 K_CREATE : C R E A T E;
 K_DATABASE : D A T A B A S E;
 K_DATABASES : D A T A B A S E S;

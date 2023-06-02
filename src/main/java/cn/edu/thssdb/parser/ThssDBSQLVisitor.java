@@ -167,6 +167,13 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       if (ctx.columnDef() != null) {
         // 添加列
         column = parseColumnDef(ctx.columnDef());
+
+        // 检查是否存在 NOT NULL 以及 PRIMARY 约束
+        if (column.getNotNull() || column.getPrimary() != 0) {
+          throw new UnsupportedOperationException(
+              "Adding a column with NOT NULL constraint is not allowed if the table is not empty.");
+        }
+
         return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_COLUMN, column);
       } else if (ctx.tableConstraint() != null) {
         // 添加约束
@@ -186,7 +193,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       }
     }
 
-    return null; // 当无匹配情况时返回null，你可能需要处理这种情况或者确保输入的SQL语句总是有效的
+    return null;
   }
 
   private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
