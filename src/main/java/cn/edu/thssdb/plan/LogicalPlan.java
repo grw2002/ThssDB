@@ -26,6 +26,7 @@ public abstract class LogicalPlan {
     INSERT_INTO_TABLE,
     DELETE_FROM_TABLE,
     UPDATE_TABLE,
-    SELECT_FROM_TABLE
+    SELECT_FROM_TABLE,
+    ALTER_TABLE
   }
 }

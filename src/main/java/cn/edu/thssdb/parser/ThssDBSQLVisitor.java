@@ -34,10 +34,7 @@ import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
@@ -45,6 +42,38 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   public ThssDBSQLVisitor(Manager manager) {
     this.manager = manager;
+  }
+
+  /*
+  utils
+  */
+  public static Map<String, Object> parseColumnType(String columnType) {
+    ColumnType columnTypeEnum;
+    int stringLength = 128; // 默认字符串长度
+
+    if (columnType.toUpperCase().contains("STRING")) {
+      columnTypeEnum = ColumnType.STRING;
+      // 从 columnType 字符串中提取字符串长度
+      int startIndex = columnType.indexOf("(");
+      int endIndex = columnType.indexOf(")");
+      if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+        String lengthString = columnType.substring(startIndex + 1, endIndex);
+        try {
+          stringLength = Integer.parseInt(lengthString);
+        } catch (NumberFormatException e) {
+          // 处理无效的字符串长度，默认使用默认长度
+          stringLength = 128;
+        }
+      }
+    } else {
+      columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
+    }
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("columnTypeEnum", columnTypeEnum);
+    result.put("stringLength", stringLength);
+
+    return result;
   }
 
   @Override
@@ -107,23 +136,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       ColumnType columnTypeEnum;
       int stringLength = 128; // 默认字符串长度
 
-      if (columnType.toUpperCase().contains("STRING")) {
-        columnTypeEnum = ColumnType.STRING;
-        // 从 columnType 字符串中提取字符串长度
-        int startIndex = columnType.indexOf("(");
-        int endIndex = columnType.indexOf(")");
-        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
-          String lengthString = columnType.substring(startIndex + 1, endIndex);
-          try {
-            stringLength = Integer.parseInt(lengthString);
-          } catch (NumberFormatException e) {
-            // 处理无效的字符串长度，默认使用默认长度
-            stringLength = 128;
-          }
-        }
-      } else {
-        columnTypeEnum = ColumnType.valueOf(columnType.toUpperCase());
-      }
+      Map<String, Object> result = parseColumnType(columnType);
+      columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
+      stringLength = (int) result.get("stringLength");
 
       columns.add(new Column(columnName, columnTypeEnum, primary, notnull, stringLength));
     }
@@ -141,6 +156,62 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitShowTableStmt(SQLParser.ShowTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     return new ShowTablePlan(tableName);
+  }
+
+  @Override
+  public LogicalPlan visitAlterTableStmt(SQLParser.AlterTableStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+    Column column = null;
+
+    if (ctx.K_ADD() != null) {
+      if (ctx.columnDef() != null) {
+        // 添加列
+        column = parseColumnDef(ctx.columnDef());
+        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_COLUMN, column);
+      } else if (ctx.tableConstraint() != null) {
+        // 添加约束
+        // TODO
+        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_CONSTRAINT, column);
+      }
+    } else if (ctx.K_DROP() != null) {
+      if (ctx.columnName() != null) {
+        // 删除列
+        String columnName = ctx.columnName().getText();
+        column = new Column(columnName, ColumnType.INT, 0, false, 128);
+        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_COLUMN, column);
+      } else if (ctx.tableConstraint() != null) {
+        // 删除约束
+        // TODO
+        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column);
+      }
+    }
+
+    return null; // 当无匹配情况时返回null，你可能需要处理这种情况或者确保输入的SQL语句总是有效的
+  }
+
+  private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
+    String columnName = ctx.columnName().getText();
+    String columnType = ctx.typeName().getText();
+    int primary = 0;
+    boolean notnull = false;
+
+    for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
+      if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
+        notnull = true;
+      } else if (columnConstraintContext.K_PRIMARY() != null
+          && columnConstraintContext.K_KEY() != null) {
+        primary = 1;
+      }
+    }
+
+    ColumnType columnTypeEnum;
+    int stringLength = 128; // 默认字符串长度
+
+    Map<String, Object> result = parseColumnType(columnType);
+    columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
+    stringLength = (int) result.get("stringLength");
+
+    return new Column(columnName, columnTypeEnum, primary, notnull, stringLength);
   }
 
   @Override

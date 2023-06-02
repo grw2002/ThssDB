@@ -18,6 +18,7 @@ sqlStmt :
     | dropUserStmt
     | deleteStmt
     | dropTableStmt
+    | alterTableStmt
     | insertStmt
     | selectStmt
     | createViewStmt
@@ -69,6 +70,14 @@ quitStmt :
 
 showTableStmt :
     K_SHOW K_TABLE tableName;
+
+alterTableStmt:
+    K_ALTER K_TABLE tableName
+        ( K_ADD K_COLUMN? columnDef
+        | K_DROP K_COLUMN? columnName
+        | K_ADD tableConstraint
+        )
+    ;
 
 insertStmt :
     K_INSERT K_INTO tableName ( '(' columnName ( ',' columnName )* ')' )?
@@ -127,7 +136,8 @@ expression :
     | '(' expression ')';
 
 tableConstraint :
-    K_PRIMARY K_KEY '(' columnName (',' columnName)* ')' ;
+    K_PRIMARY K_KEY '(' columnName (',' columnName)* ')'
+    | K_FOREIGN K_KEY '(' columnName ')' K_REFERENCES tableName '(' columnName ')';
 
 resultColumn
     : '*'
@@ -190,6 +200,7 @@ T_STRING : S T R I N G;
 
 K_ADD : A D D;
 K_ALL : A L L;
+K_ALTER: A L T E R;
 K_AS : A S;
 K_BY : B Y;
 K_COLUMN : C O L U M N;
@@ -201,6 +212,7 @@ K_DISTINCT : D I S T I N C T;
 K_DROP : D R O P;
 K_EXISTS : E X I S T S;
 K_FROM : F R O M;
+K_FOREIGN : F O R E I G N;
 K_GRANT : G R A N T;
 K_IF : I F;
 K_IDENTIFIED : I D E N T I F I E D;
@@ -213,6 +225,7 @@ K_NULL : N U L L;
 K_ON : O N;
 K_PRIMARY : P R I M A R Y;
 K_QUIT : Q U I T;
+K_REFERENCES : R E F E R E N C E S;
 K_REVOKE : R E V O K E;
 K_SELECT : S E L E C T;
 K_SET : S E T;
