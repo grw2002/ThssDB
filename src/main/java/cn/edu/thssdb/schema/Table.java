@@ -30,16 +30,76 @@ public class Table implements Iterable<Row>, Serializable {
     }
   }
 
+  /*
+   utils begin
+  */
+
+  // util: automatic convert type if possible, used in alterType
+  @SuppressWarnings("rawtypes")
+  public Comparable convertType(Object oldValue, String newColumnType) {
+    try {
+      switch (newColumnType) {
+        case "INT":
+          if (oldValue instanceof Number) {
+            return ((Number) oldValue).intValue();
+          } else {
+            return Integer.parseInt(oldValue.toString());
+          }
+        case "LONG":
+          if (oldValue instanceof Number) {
+            return ((Number) oldValue).longValue();
+          } else {
+            return Long.parseLong(oldValue.toString());
+          }
+        case "FLOAT":
+          if (oldValue instanceof Number) {
+            return ((Number) oldValue).floatValue();
+          } else {
+            return Float.parseFloat(oldValue.toString());
+          }
+        case "DOUBLE":
+          if (oldValue instanceof Number) {
+            return ((Number) oldValue).doubleValue();
+          } else {
+            return Double.parseDouble(oldValue.toString());
+          }
+        case "STRING":
+          return oldValue.toString();
+        default:
+          return null;
+      }
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  /*
+   utils end
+  */
   public void addColumn(Column column) {
     this.columns.add(column);
     column.setTable(this);
+
+    if (this.index.size() > 0) {
+      Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+      while (iterator.hasNext()) {
+        Pair<Entry, Row> pair = iterator.next();
+        Row row;
+
+        row = pair.right; // 获取第二个元素的值
+        row.addEntry(new Entry(null)); // 增加一个新的Entry
+      }
+    }
   }
 
   public void dropColumn(String columnName) {
     boolean findFlag = false;
     Column column;
+
+    int columnIndex = -1;
     for (Iterator<Column> iterator = columns.iterator(); iterator.hasNext(); ) {
       column = iterator.next();
+      columnIndex++;
       if (column.getName().equals(columnName)) {
         iterator.remove();
         findFlag = true;
@@ -49,14 +109,29 @@ public class Table implements Iterable<Row>, Serializable {
 
     if (!findFlag) {
       throw new ColumnNotExistException();
+    } else {
+      if (this.index.size() > 0) {
+        Row row;
+        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+
+        while (iterator.hasNext()) {
+          Pair<Entry, Row> pair = iterator.next();
+          row = pair.right;
+          row.dropEntry(columnIndex); // 增加一个新的Entry
+        }
+      }
     }
   }
 
+  @SuppressWarnings("rawtypes")
   public void alterType(String columnName, String newColumnType) {
     boolean findFlag = false;
+    int columnIndex = -1;
+
     for (Column column : columns) {
       if (column.getName().equals(columnName)) {
         column.setType(newColumnType);
+        columnIndex++;
         findFlag = true;
         break;
       }
@@ -64,6 +139,34 @@ public class Table implements Iterable<Row>, Serializable {
 
     if (!findFlag) {
       throw new ColumnNotExistException();
+    } else {
+      if (this.index.size() > 0) {
+        Row row;
+        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+        Entry oldEntry;
+        Entry newEntry;
+        Comparable alteredType;
+        boolean ifError = false;
+
+        while (iterator.hasNext()) {
+          Pair<Entry, Row> pair = iterator.next();
+          row = pair.right;
+          oldEntry = row.entries.get(columnIndex);
+          alteredType = convertType(oldEntry.value, newColumnType);
+
+          if (!ifError && alteredType == null) {
+            System.out.println(
+                "Cannot convert from "
+                    + oldEntry.value.getClass().getSimpleName()
+                    + " to "
+                    + newColumnType
+                    + ", set to null.");
+            ifError = true;
+          }
+          newEntry = new Entry(alteredType);
+          row.alterEntryType(columnIndex, newEntry);
+        }
+      }
     }
   }
 

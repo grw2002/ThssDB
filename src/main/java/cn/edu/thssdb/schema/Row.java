@@ -32,6 +32,22 @@ public class Row implements Serializable {
     return sj.toString();
   }
 
+  public void addEntry(Entry entry) {
+    this.entries.add(entry);
+  }
+
+  public void dropEntry(int index) {
+    this.entries.remove(index);
+  }
+
+  public void alterEntryType(int index, Entry newEntry) {
+    this.entries.set(index, newEntry);
+  }
+
+  public void alterEntryName(int index, Entry newEntry) {
+    this.entries.set(index, newEntry);
+  }
+
   public Row combine(Row poll) {
     Entry[] entries = new Entry[this.entries.size() + poll.entries.size()];
     for (int i = 0; i < this.entries.size(); i++) {
