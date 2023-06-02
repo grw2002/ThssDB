@@ -1,5 +1,6 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.utils.Pair;
 
@@ -32,6 +33,23 @@ public class Table implements Iterable<Row>, Serializable {
   public void addColumn(Column column) {
     this.columns.add(column);
     column.setTable(this);
+  }
+
+  public void dropColumn(String columnName) {
+    boolean dropFlag = false;
+    Column column;
+    for (Iterator<Column> iterator = columns.iterator(); iterator.hasNext(); ) {
+      column = iterator.next();
+      if (column.getName().equals(columnName)) {
+        iterator.remove();
+        dropFlag = true;
+        break;
+      }
+    }
+
+    if (!dropFlag) {
+      throw new ColumnNotExistException();
+    }
   }
 
   public List<Column> getColumns() {

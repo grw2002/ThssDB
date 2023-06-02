@@ -126,7 +126,32 @@ public class IServiceHandler implements IService.Iface {
                 .collect(Collectors.toList());
         return showTableResp;
 
+      case ALTER_TABLE:
+        System.out.println("[DEBUG] " + plan);
+        AlterTablePlan alterTablePlan = (AlterTablePlan) plan;
+
+        switch (alterTablePlan.getOperation()) {
+          case ADD_COLUMN:
+            manager.addColumn(alterTablePlan.getTableName(), alterTablePlan.getColumn());
+            break;
+          case DROP_COLUMN:
+            manager.dropColumn(alterTablePlan.getTableName(), alterTablePlan.getColumnName());
+            break;
+          case ADD_CONSTRAINT:
+            // TODO: 需要在AlterTablePlan中添加一个getConstraint方法来获取约束，然后调用添加约束的方法
+            // manager.addConstraint(alterTablePlan.getTableName(), alterTablePlan.getConstraint());
+            break;
+          case DROP_CONSTRAINT:
+            // TODO: 需要在AlterTablePlan中添加一个getConstraint方法来获取约束，然后调用删除约束的方法
+            // manager.dropConstraint(alterTablePlan.getTableName(),
+            // alterTablePlan.getConstraint());
+            break;
+        }
+
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case SELECT_FROM_TABLE:
+        System.out.println("[DEBUG] " + plan);
         SelectPlan selectPlan = ((SelectPlan) plan);
         QueryResult queryResult =
             manager

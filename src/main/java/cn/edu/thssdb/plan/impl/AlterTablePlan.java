@@ -20,48 +20,46 @@ package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.ForeignKeyConstraint;
 
-import javax.swing.*;
-
-import java.util.List;
-
-public class CreateTablePlan extends LogicalPlan {
+public class AlterTablePlan extends LogicalPlan {
+  public enum Operation {
+    ADD_COLUMN,
+    DROP_COLUMN,
+    ADD_CONSTRAINT,
+    DROP_CONSTRAINT
+  }
 
   private String tableName;
-  private List<Column> columns;
-  List<ForeignKeyConstraint> foreignKeyConstraints;
+  private Operation operation;
+  private Column column;
+  // private String columnName;
+  // private TableConstraint constraint;
 
-  public CreateTablePlan(String tableName, List<Column> columns) {
-    super(LogicalPlanType.CREATE_TABLE);
+  // ... getters and setters ...
+  public AlterTablePlan() {
+    super(LogicalPlanType.ALTER_TABLE);
+  }
+
+  public AlterTablePlan(String tableName, Operation operation, Column column) {
+    super(LogicalPlanType.ALTER_TABLE);
     this.tableName = tableName;
-    this.columns = columns;
+    this.operation = operation;
+    this.column = column;
   }
 
   public String getTableName() {
-    return tableName;
+    return this.tableName;
   }
 
-  public List<Column> getColumns() {
-    return columns;
+  public Operation getOperation() {
+    return this.operation;
   }
 
-  public int getPrimaryIndex() {
-    for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getPrimary() == 1) {
-        return i;
-      }
-    }
-    return -1;
+  public Column getColumn() {
+    return this.column;
   }
 
-  @Override
-  public String toString() {
-    String columnInfo = "";
-    for (Column column : columns) {
-      columnInfo += column.toString();
-      columnInfo += ";";
-    }
-    return "CreateTablePlan{" + "databaseName='" + tableName + "\', columns=" + columnInfo + '}';
+  public String getColumnName() {
+    return this.column.getName();
   }
 }

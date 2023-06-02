@@ -152,6 +152,22 @@ public class Manager {
     return columns;
   }
 
+  public void addColumn(String tableName, Column column) {
+    Table table = currentDatabase.findTableByName(tableName);
+    if (table == null) {
+      throw new RuntimeException("Table " + tableName + " not found");
+    }
+    table.addColumn(column);
+  }
+
+  public void dropColumn(String tableName, String columnName) {
+    Table table = currentDatabase.findTableByName(tableName);
+    if (table == null) {
+      throw new RuntimeException("Table " + tableName + " not found");
+    }
+    table.dropColumn(columnName);
+  }
+
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
