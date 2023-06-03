@@ -2,12 +2,9 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.exception.TableNotExistException;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +22,8 @@ public class Manager {
    * saveMetaDataToFile & loadMetaDataFromFile
    */
   public void saveMetaDataToFile(String filePath) {
-    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+    try (OutputStream os = Files.newOutputStream(Paths.get(filePath));
+        ObjectOutputStream oos = new ObjectOutputStream(os)) {
       oos.writeObject(this.databases);
     } catch (IOException e) {
       e.printStackTrace();
@@ -33,8 +31,28 @@ public class Manager {
   }
 
   public void loadMetaDataFromFile(String filePath) {
-    try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-      this.databases = (HashMap<String, Database>) ois.readObject();
+    Path loadPath = Paths.get(filePath);
+    try {
+      if (Files.size(loadPath) == 0) {
+        System.out.println("Empty metadata file. No existing databases.");
+        return; // 如果文件为空，直接返回，不创建 ObjectInputStream
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+      return; // 如果发生异常，直接返回
+    }
+    try (InputStream is = Files.newInputStream(loadPath);
+        ObjectInputStream ois = new ObjectInputStream(is)) {
+      Object fileContent = ois.readObject();
+      if (fileContent != null) {
+        if (fileContent instanceof HashMap) {
+          this.databases = (HashMap<String, Database>) fileContent;
+        } else {
+          System.out.println("Invalid metadata file content. Expected HashMap<String, Database>.");
+        }
+      } else {
+        System.out.println("Empty metadata file. Keeping existing databases.");
+      }
     } catch (IOException | ClassNotFoundException e) {
       e.printStackTrace();
     }
@@ -53,6 +71,7 @@ public class Manager {
         // Handle Exception
         e.printStackTrace();
       }
+      return instance;
     }
 
     instance.loadMetaDataFromFile(filePath.toString());
@@ -96,7 +115,7 @@ public class Manager {
   public void deleteDatabase(String databaseName) throws RuntimeException {
     // TODO
     if (databases.containsKey(databaseName)) {
-      if (currentDatabase.getName() == databaseName) {
+      if (currentDatabase.getName().equals(databaseName)) {
         currentDatabase = null;
       }
       databases.remove(databaseName);
@@ -148,8 +167,7 @@ public class Manager {
       throw new RuntimeException("No database selected");
     }
 
-    List<Column> columns = currentDatabase.getTableColumns(tableName);
-    return columns;
+    return currentDatabase.getTableColumns(tableName);
   }
 
   public void addColumn(String tableName, Column column) {
@@ -166,6 +184,42 @@ public class Manager {
       throw new RuntimeException("Table " + tableName + " not found");
     }
     table.dropColumn(columnName);
+  }
+
+  public void alterColumnType(String tableName, String columnName, String newColumnType) {
+    Table table = currentDatabase.findTableByName(tableName);
+    if (table == null) {
+      throw new RuntimeException("Table " + tableName + " not found");
+    }
+    table.alterType(columnName, newColumnType);
+  }
+
+  public void renameColumn(String tableName, String columnName, String newColumnName) {
+    Table table = currentDatabase.findTableByName(tableName);
+    if (table == null) {
+      throw new RuntimeException("Table " + tableName + " not found");
+    }
+    table.alterName(columnName, newColumnName);
+  }
+
+  public List<String> showRowsInTable(String tableName) {
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+
+    return table.getAllRows();
+  }
+
+  public void insertIntoTable(
+      String tableName, List<String> columnNames, List<List<String>> values) {
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+    table.insertNameValue(columnNames, values);
   }
 
   private static class ManagerHolder {

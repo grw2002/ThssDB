@@ -28,6 +28,7 @@ sqlStmt :
     | useDbStmt
     | showDbStmt
     | showTableStmt
+    | showRowsStmt
     | quitStmt
     | updateStmt ;
 
@@ -75,9 +76,14 @@ alterTableStmt:
     K_ALTER K_TABLE tableName
         ( K_ADD K_COLUMN? columnDef
         | K_DROP K_COLUMN? columnName
+        | K_ALTER K_COLUMN? columnName K_TYPE typeName
+        | K_RENAME K_COLUMN? columnName K_TO columnName
         | K_ADD K_CONSTRAINT tableConstraint
         )
     ;
+
+showRowsStmt:
+    K_SHOW K_ROWS tableName;
 
 insertStmt :
     K_INSERT K_INTO tableName ( '(' columnName ( ',' columnName )* ')' )?
@@ -227,12 +233,15 @@ K_ON : O N;
 K_PRIMARY : P R I M A R Y;
 K_QUIT : Q U I T;
 K_REFERENCES : R E F E R E N C E S;
+K_RENAME : R E N A M E;
 K_REVOKE : R E V O K E;
+K_ROWS : R O W S;
 K_SELECT : S E L E C T;
 K_SET : S E T;
 K_SHOW : S H O W;
 K_TABLE : T A B L E;
 K_TO : T O;
+K_TYPE : T Y P E;
 K_UPDATE : U P D A T E;
 K_USE : U S E;
 K_USER : U S E R;

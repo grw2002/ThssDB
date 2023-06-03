@@ -76,6 +76,38 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return result;
   }
 
+  /*
+   utils begin
+  */
+
+  private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
+    String columnName = ctx.columnName().getText();
+    String columnType = ctx.typeName().getText();
+    int primary = 0;
+    boolean notnull = false;
+
+    for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
+      if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
+        notnull = true;
+      } else if (columnConstraintContext.K_PRIMARY() != null
+          && columnConstraintContext.K_KEY() != null) {
+        primary = 1;
+      }
+    }
+
+    ColumnType columnTypeEnum;
+    int stringLength = 128; // 默认字符串长度
+
+    Map<String, Object> result = parseColumnType(columnType);
+    columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
+    stringLength = (int) result.get("stringLength");
+
+    return new Column(columnName, columnTypeEnum, primary, notnull, stringLength);
+  }
+
+  /*
+   utils end
+  */
   @Override
   public LogicalPlan visitCreateUserStmt(SQLParser.CreateUserStmtContext ctx) {
     return new CreateUserPlan(ctx.userName().getText(), ctx.password().getText());
@@ -162,6 +194,10 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitAlterTableStmt(SQLParser.AlterTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     Column column = null;
+    String newColumnName = null;
+    String newColumnType = null;
+
+    // columnType.INT -> default, has no meaning
 
     if (ctx.K_ADD() != null) {
       if (ctx.columnDef() != null) {
@@ -174,51 +210,70 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
               "Adding a column with NOT NULL constraint is not allowed if the table is not empty.");
         }
 
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_COLUMN, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.ADD_COLUMN, column, null, null);
       } else if (ctx.tableConstraint() != null) {
         // 添加约束
         // TODO
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.ADD_CONSTRAINT, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.ADD_CONSTRAINT, column, null, null);
       }
     } else if (ctx.K_DROP() != null) {
       if (ctx.columnName() != null) {
         // 删除列
-        String columnName = ctx.columnName().getText();
+        String columnName = ctx.columnName(0).getText();
         column = new Column(columnName, ColumnType.INT, 0, false, 128);
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_COLUMN, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.DROP_COLUMN, column, null, null);
       } else if (ctx.tableConstraint() != null) {
         // 删除约束
         // TODO
-        return new AlterTablePlan(tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column);
+        return new AlterTablePlan(
+            tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column, null, null);
       }
+    } else if (ctx.K_ALTER() != null) {
+      String columnName = ctx.columnName(0).getText();
+      newColumnType = ctx.typeName().getText();
+      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      return new AlterTablePlan(
+          tableName, AlterTablePlan.Operation.ALTER_COLUMN, column, newColumnType, null);
+    } else if (ctx.K_RENAME() != null) {
+      String columnName = ctx.columnName(0).getText();
+      newColumnName = ctx.columnName(1).getText();
+      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      return new AlterTablePlan(
+          tableName, AlterTablePlan.Operation.RENAME_COLUMN, column, null, newColumnName);
     }
 
     return null;
   }
 
-  private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
-    String columnName = ctx.columnName().getText();
-    String columnType = ctx.typeName().getText();
-    int primary = 0;
-    boolean notnull = false;
+  @Override
+  public LogicalPlan visitShowRowsStmt(SQLParser.ShowRowsStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+    return new ShowRowsPlan(tableName);
+  }
 
-    for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
-      if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
-        notnull = true;
-      } else if (columnConstraintContext.K_PRIMARY() != null
-          && columnConstraintContext.K_KEY() != null) {
-        primary = 1;
-      }
+  @Override
+  public LogicalPlan visitInsertStmt(SQLParser.InsertStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+
+    // column names
+    List<String> columnNames = new ArrayList<>();
+    for (SQLParser.ColumnNameContext columnNameCtx : ctx.columnName()) {
+      columnNames.add(columnNameCtx.getText());
     }
 
-    ColumnType columnTypeEnum;
-    int stringLength = 128; // 默认字符串长度
-
-    Map<String, Object> result = parseColumnType(columnType);
-    columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
-    stringLength = (int) result.get("stringLength");
-
-    return new Column(columnName, columnTypeEnum, primary, notnull, stringLength);
+    // values
+    List<List<String>> values = new ArrayList<>();
+    for (SQLParser.ValueEntryContext valueEntryCtx : ctx.valueEntry()) {
+      List<String> value = new ArrayList<>();
+      for (SQLParser.LiteralValueContext literalValueCtx : valueEntryCtx.literalValue()) {
+        value.add(literalValueCtx.getText());
+      }
+      values.add(value);
+    }
+    return new InsertPlan(tableName, columnNames, values);
   }
 
   @Override
@@ -233,10 +288,10 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     for (SQLParser.TableQueryContext tableQueryContext : ctx.tableQuery()) {
       String tableName = tableQueryContext.getText();
       Table table = currentDB.findTableByName(tableName);
-      queryTables.add(new QueryTable(table));
       if (table == null) {
         throw new TableNotExistException();
       }
+      queryTables.add(new QueryTable(table));
       tables.add(table);
       //      System.out.println("add table " + table.tableName);
       metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
