@@ -84,19 +84,19 @@ public class Table implements Iterable<Row>, Serializable {
    utils end
   */
   public void addColumn(Column column) {
-    column.setTable(this);
     this.columns.add(column);
+    column.setTable(this);
 
-    if (this.index.size() > 0) {
-      Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
-      while (iterator.hasNext()) {
-        Pair<Entry, Row> pair = iterator.next();
-        Row row;
-
-        row = pair.right; // 获取第二个元素的值
-        row.addEntry(new Entry(null)); // 增加一个新的Entry
-      }
-    }
+    //    if (this.index.size() > 0) {
+    //      Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+    //      while (iterator.hasNext()) {
+    //        Pair<Entry, Row> pair = iterator.next();
+    //        Row row;
+    //
+    //        row = pair.right; // 获取第二个元素的值
+    //        row.addEntry(new Entry(null)); // 增加一个新的Entry
+    //      }
+    //    }
   }
 
   public void dropColumn(String columnName) {
