@@ -231,18 +231,6 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         return new AlterTablePlan(
             tableName, AlterTablePlan.Operation.DROP_CONSTRAINT, column, null, null);
       }
-    } else if (ctx.K_ALTER() != null) {
-      String columnName = ctx.columnName(0).getText();
-      newColumnType = ctx.typeName().getText();
-      column = new Column(columnName, ColumnType.INT, 0, false, 128);
-      return new AlterTablePlan(
-          tableName, AlterTablePlan.Operation.ALTER_COLUMN, column, newColumnType, null);
-    } else if (ctx.K_RENAME() != null) {
-      String columnName = ctx.columnName(0).getText();
-      newColumnName = ctx.columnName(1).getText();
-      column = new Column(columnName, ColumnType.INT, 0, false, 128);
-      return new AlterTablePlan(
-          tableName, AlterTablePlan.Operation.RENAME_COLUMN, column, null, newColumnName);
     }
 
     return null;
