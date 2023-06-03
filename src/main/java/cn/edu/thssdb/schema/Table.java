@@ -160,9 +160,10 @@ public class Table implements Iterable<Row>, Serializable {
           row = pair.right;
           oldEntry = row.entries.get(columnIndex);
           try {
-            Column dummyColumn =
-                new Column("dummy", ColumnType.valueOf(newColumnType), 1, notNull, 128);
-            newEntry = entryParse(oldEntry.value.toString(), dummyColumn);
+            newEntry =
+                entryParse(
+                    oldEntry.value.toString(),
+                    new Column("dummy", ColumnType.valueOf(newColumnType), 1, notNull, 128));
           } catch (Exception e) {
             if (!ifError) {
               System.out.println(
