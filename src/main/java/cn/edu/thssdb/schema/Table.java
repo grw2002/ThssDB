@@ -84,8 +84,8 @@ public class Table implements Iterable<Row>, Serializable {
    utils end
   */
   public void addColumn(Column column) {
-    this.columns.add(column);
     column.setTable(this);
+    this.columns.add(column);
 
     if (this.index.size() > 0) {
       Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
