@@ -40,13 +40,13 @@ public class Table implements Iterable<Row>, Serializable {
   */
 
   // util: parse string and return entry
-  public static Entry entryParse(String value, Column column) {
+  public static Entry entryParse(
+      String value, String columnName, ColumnType columnType, boolean notNull) {
     if (value.equalsIgnoreCase("null")) {
-      if (column.getNotNull()) throw new NotNullException(column.getName());
+      if (notNull) throw new NotNullException(columnName);
       return new Entry(null);
     }
 
-    ColumnType columnType = column.getType();
     switch (columnType) {
       case INT:
         return new Entry(Integer.valueOf(value));
@@ -160,10 +160,12 @@ public class Table implements Iterable<Row>, Serializable {
           row = pair.right;
           oldEntry = row.entries.get(columnIndex);
           try {
-            Column dummyColumn =
-                new Column("dummy", ColumnType.valueOf(newColumnType), 1, notNull, 128);
-            dummyColumn.setTable(this);
-            newEntry = entryParse(oldEntry.value.toString(), dummyColumn);
+            newEntry =
+                entryParse(
+                    oldEntry.value.toString(),
+                    columnName,
+                    ColumnType.valueOf(newColumnType),
+                    notNull);
           } catch (Exception e) {
             if (!ifError) {
               System.out.println(
@@ -239,7 +241,13 @@ public class Table implements Iterable<Row>, Serializable {
         Column column = findColumnByName(columnName);
 
         if (columnNames.contains(columnName)) {
-          entries[i] = new Entry(entryParse(valueList.get(valueIndex), column));
+          entries[i] =
+              new Entry(
+                  entryParse(
+                      valueList.get(valueIndex),
+                      column.getName(),
+                      column.getType(),
+                      column.getNotNull()));
           valueIndex++;
         } else {
           // The column is not specified, use a default value
