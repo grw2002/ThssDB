@@ -29,7 +29,6 @@ public class Table implements Iterable<Row>, Serializable {
     for (int i = 0; i < columns.length; i++) {
       if (columns[i].getPrimary() != 0) {
         primaryIndex = i;
-        break;
       }
       columns[i].setTable(this);
     }

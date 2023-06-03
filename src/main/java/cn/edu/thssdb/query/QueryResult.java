@@ -116,8 +116,13 @@ public class QueryResult {
         Entry[] newEntries = new Entry[metaInfo.getColumns().size()];
         for (int i = 0; i < metaInfo.getColumns().size(); i++) {
           Column column = metaInfo.getColumns().get(i);
+          System.out.println(
+              metaInfo.getTableName()
+                  + " "
+                  + column.getName()
+                  + column.getIndex()
+                  + entries.toString());
           newEntries[i] = entries.get(column.getIndex());
-          //          System.out.println(column.getName() + column.getIndex() + entries.toString());
         }
         newRows.add(new Row(newEntries));
       }
