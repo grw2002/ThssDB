@@ -202,6 +202,16 @@ public class Manager {
     table.alterName(columnName, newColumnName);
   }
 
+  public List<String> showRowsInTable(String tableName) {
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+
+    return table.getAllRows();
+  }
+
   public void insertIntoTable(
       String tableName, List<String> columnNames, List<List<String>> values) {
     Table table = this.currentDatabase.findTableByName(tableName);

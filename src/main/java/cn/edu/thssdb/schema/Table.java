@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.exception.NotNullException;
 import cn.edu.thssdb.index.BPlusTree;
+import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
@@ -38,7 +39,7 @@ public class Table implements Iterable<Row>, Serializable {
    utils begin
   */
 
-  // util: automatic convert type if possible, used in alterType
+  // util: parse string and return entry
   public static Entry entryParse(String value, Column column) {
     if (value.equalsIgnoreCase("null")) {
       if (column.getNotNull()) throw new NotNullException(column.getName());
@@ -56,13 +57,27 @@ public class Table implements Iterable<Row>, Serializable {
       case DOUBLE:
         return new Entry(Double.valueOf(value));
       case STRING:
-        if (value.startsWith("\"") && value.endsWith("\"")) {
+        if (value.startsWith("\'") && value.endsWith("\'")) {
           value = value.substring(1, value.length() - 1);
         }
         return new Entry(value);
       default:
         return null;
     }
+  }
+
+  // util: get all rows
+  public List<String> getAllRows() {
+    List<String> allRows = new ArrayList<>();
+
+    BPlusTreeIterator<Entry, Row> iter = index.iterator();
+    while (iter.hasNext()) {
+      Pair<Entry, Row> pair = iter.next();
+      Row row = (Row) pair.right;
+      allRows.add(row.toString());
+    }
+
+    return allRows;
   }
 
   /*

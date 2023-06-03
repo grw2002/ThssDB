@@ -22,6 +22,7 @@ import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -193,6 +194,26 @@ public class IServiceHandler implements IService.Iface {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
 
+      case SHOW_ROWS:
+        try {
+          System.out.println("[DEBUG] " + plan);
+          ShowRowsPlan showRowsPlan = (ShowRowsPlan) plan;
+          List<String> rows = manager.showRowsInTable(showRowsPlan.getTableName());
+          List<Column> tableColumns =
+              manager.getCurrentDatabase().getTableColumns(showRowsPlan.getTableName());
+          List<String> columnsList = new ArrayList<>();
+
+          for (Column column : tableColumns) {
+            columnsList.add(column.getName().toString());
+          }
+          ExecuteStatementResp showRowsResp = new ExecuteStatementResp(StatusUtil.success(), true);
+          showRowsResp.columnsList = columnsList;
+          showRowsResp.rowList =
+              rows.stream().map(row -> Arrays.asList(row.split(","))).collect(Collectors.toList());
+          return showRowsResp;
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
       case INSERT_INTO_TABLE:
         try {
           System.out.println("[DEBUG] " + plan);
