@@ -27,6 +27,10 @@ public class Database implements Serializable {
     return name;
   }
 
+  public Collection<Table> getTables() {
+    return this.tables.values();
+  }
+
   public List<Column> getTableColumns(String tableName) {
     Table table = findTableByName(tableName);
     if (table == null) {

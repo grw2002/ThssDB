@@ -277,6 +277,44 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
+  public LogicalPlan visitDeleteStmt(SQLParser.DeleteStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
+    List<String> conditions = new ArrayList<>();
+    if (ctx.multipleCondition() != null) {
+      SQLParser.MultipleConditionContext multipleConditionCtx = ctx.multipleCondition();
+      // 遍历条件树
+      traverseConditionTree(multipleConditionCtx, conditions);
+    }
+
+    return new DeletePlan(tableName, conditions);
+  }
+
+  // 递归遍历条件树，获取所有的条件和逻辑操作符
+  private void traverseConditionTree(
+      SQLParser.MultipleConditionContext ctx, List<String> conditions) {
+    if (ctx.condition() != null) {
+      SQLParser.ConditionContext conditionCtx = ctx.condition();
+      String leftExpr = conditionCtx.expression(0).getText();
+      String comparator = conditionCtx.comparator().getText();
+      String rightExpr = conditionCtx.expression(1).getText();
+      conditions.add(leftExpr + " " + comparator + " " + rightExpr);
+    } else {
+      if (ctx.multipleCondition(0) != null) {
+        traverseConditionTree(ctx.multipleCondition(0), conditions);
+      }
+      // 添加逻辑操作符
+      if (ctx.AND() != null) {
+        conditions.add("AND");
+      } else if (ctx.OR() != null) {
+        conditions.add("OR");
+      }
+      if (ctx.multipleCondition(1) != null) {
+        traverseConditionTree(ctx.multipleCondition(1), conditions);
+      }
+    }
+  }
+
+  @Override
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) throws RuntimeException {
     List<MetaInfo> metaInfos = new ArrayList<>();
     List<Table> tables = new ArrayList<>();

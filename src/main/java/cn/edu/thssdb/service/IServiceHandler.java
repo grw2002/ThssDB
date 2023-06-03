@@ -146,7 +146,7 @@ public class IServiceHandler implements IService.Iface {
                               column.getName(),
                               column.getType().toString(),
                               (column.getPrimary() != 0) ? "PRIMARY KEY" : "NOT PRIMARY",
-                              (column.getNotNull() == true) ? "NOT NULL" : "NULL",
+                              (column.getNotNull()) ? "NOT NULL" : "CAN NULL",
                               (column.getType() == ColumnType.STRING)
                                   ? String.valueOf(column.getMaxLength())
                                   : "None"))
@@ -224,6 +224,20 @@ public class IServiceHandler implements IService.Iface {
         } catch (Exception e) {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
+      case DELETE_FROM_TABLE:
+        try {
+          System.out.println("[DEBUG] " + plan);
+          DeletePlan deletePlan = (DeletePlan) plan;
+          String tableName = deletePlan.getTableName();
+          List<String> conditions = deletePlan.getConditions();
+          // Assume manager.deleteFromTable() returns a boolean indicating whether the operation was
+          // successful
+          manager.deleteFromTable(tableName, conditions);
+          return new ExecuteStatementResp(StatusUtil.success(), false);
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+
       case SELECT_FROM_TABLE:
         System.out.println("[DEBUG] " + plan);
         SelectPlan selectPlan = ((SelectPlan) plan);

@@ -18,6 +18,7 @@ public class Table implements Iterable<Row>, Serializable {
   public String tableName;
   private ArrayList<Column> columns;
   public transient BPlusTree<Entry, Row> index;
+  private transient Map<String, Integer> columnIndex;
   private int primaryIndex;
 
   public Table(String databaseName, String tableName, Column[] columns) {
@@ -26,17 +27,36 @@ public class Table implements Iterable<Row>, Serializable {
     this.tableName = tableName;
     this.columns = new ArrayList<>(Arrays.asList(columns));
     this.index = new BPlusTree<>();
+    this.columnIndex = new HashMap<>(); // 初始化映射
     for (int i = 0; i < columns.length; i++) {
       if (columns[i].getPrimary() != 0) {
         primaryIndex = i;
       }
       columns[i].setTable(this);
+      columnIndex.put(columns[i].getName(), i); // 在映射中添加新列
     }
   }
 
   /*
    utils begin
   */
+
+  // util: initTransientFields BPlusTree & Map
+  public void initTransientFields() {
+    this.index = new BPlusTree<>();
+    this.columnIndex = new HashMap<>();
+    for (int i = 0; i < columns.size(); i++) {
+      columnIndex.put(columns.get(i).getName(), i);
+    }
+  }
+
+  // util: update column-index map
+  public void updateColumnIndex() {
+    columnIndex.clear();
+    for (int i = 0; i < columns.size(); i++) {
+      columnIndex.put(columns.get(i).getName(), i);
+    }
+  }
 
   // util: parse string and return entry
   public static Entry entryParse(
@@ -66,7 +86,7 @@ public class Table implements Iterable<Row>, Serializable {
   }
 
   // util: get all rows
-  public List<String> getAllRows() {
+  public List<String> getAllRowsInfo() {
     List<String> allRows = new ArrayList<>();
 
     BPlusTreeIterator<Entry, Row> iter = index.iterator();
@@ -96,6 +116,7 @@ public class Table implements Iterable<Row>, Serializable {
         row.addEntry(new Entry(null)); // 增加一个新的Entry
       }
     }
+    updateColumnIndex();
   }
 
   public void dropColumn(String columnName) {
@@ -108,6 +129,7 @@ public class Table implements Iterable<Row>, Serializable {
       columnIndex++;
       if (column.getName().equals(columnName)) {
         iterator.remove();
+        updateColumnIndex();
         findFlag = true;
         break;
       }
@@ -247,6 +269,13 @@ public class Table implements Iterable<Row>, Serializable {
                       column.getName(),
                       column.getType(),
                       column.getNotNull()));
+          if (column.getPrimary() == 1) {
+            Entry primaryKey = entries[i];
+            // 检查主键是否已经存在
+            if (index.contains(primaryKey)) {
+              throw new RuntimeException("Duplicate primary key '" + primaryKey + "'");
+            }
+          }
           valueIndex++;
         } else {
           // The column is not specified, use a default value
@@ -278,6 +307,76 @@ public class Table implements Iterable<Row>, Serializable {
       Row row = new Row(entries);
       insert(new Row[] {row});
     }
+  }
+
+  public void deleteWithConditions(List<String> conditions) {
+    // Get the only condition from the list
+    String condition = conditions.get(0);
+
+    // Parse the condition
+    String[] parts = condition.split(" ");
+    String columnName = parts[0];
+    String operator = parts[1];
+    String value = parts[2];
+    if (value.startsWith("'") && value.endsWith("'")) {
+      value = value.substring(1, value.length() - 1); // drop the ' in 'String'
+    }
+
+    // Prepare a list for the primary keys of the rows to be deleted
+    List<Entry> toDelete = new ArrayList<>();
+
+    // Iterate over all rows
+    BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+    while (iterator.hasNext()) {
+      Pair<Entry, Row> pair = iterator.next();
+      Row row = pair.right;
+
+      // Get the value in the column for this row
+      Entry columnValueEntry = row.getEntries().get(columnIndex.get(columnName));
+      String columnValue =
+          columnValueEntry
+              .toString(); // Assuming Entry has a toString method that returns its value
+
+      // Check if the condition is satisfied for this row
+      switch (operator) {
+          // '=', '<>', '<', '>', '<=', '>='
+        case "=":
+          if (columnValue.equals(value)) {
+            toDelete.add(pair.left);
+          }
+          break;
+        case "<>":
+          if (!columnValue.equals(value)) {
+            toDelete.add(pair.left);
+          }
+          break;
+        case "<":
+          if (columnValue.compareTo(value) <= 0) {
+            toDelete.add(pair.left);
+          }
+          break;
+        case ">":
+          if (columnValue.compareTo(value) >= 0) {
+            toDelete.add(pair.left);
+          }
+          break;
+        case "<=":
+          if (columnValue.compareTo(value) < 0) {
+            toDelete.add(pair.left);
+          }
+          break;
+        case ">=":
+          if (columnValue.compareTo(value) > 0) {
+            toDelete.add(pair.left);
+          }
+          break;
+        default:
+          throw new RuntimeException("Invalid operator: " + operator);
+      }
+    }
+
+    // Delete the rows
+    delete(toDelete.toArray(new Entry[0]));
   }
 
   public void delete(Entry[] primaryKeys) {
