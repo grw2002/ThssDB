@@ -1,6 +1,7 @@
 package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.ColumnNotExistException;
+import cn.edu.thssdb.exception.NotNullException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
@@ -38,41 +39,29 @@ public class Table implements Iterable<Row>, Serializable {
   */
 
   // util: automatic convert type if possible, used in alterType
-  @SuppressWarnings("rawtypes")
-  public Comparable convertType(Object oldValue, String newColumnType) {
-    try {
-      switch (newColumnType) {
-        case "INT":
-          if (oldValue instanceof Number) {
-            return ((Number) oldValue).intValue();
-          } else {
-            return Integer.parseInt(oldValue.toString());
-          }
-        case "LONG":
-          if (oldValue instanceof Number) {
-            return ((Number) oldValue).longValue();
-          } else {
-            return Long.parseLong(oldValue.toString());
-          }
-        case "FLOAT":
-          if (oldValue instanceof Number) {
-            return ((Number) oldValue).floatValue();
-          } else {
-            return Float.parseFloat(oldValue.toString());
-          }
-        case "DOUBLE":
-          if (oldValue instanceof Number) {
-            return ((Number) oldValue).doubleValue();
-          } else {
-            return Double.parseDouble(oldValue.toString());
-          }
-        case "STRING":
-          return oldValue.toString();
-        default:
-          return null;
-      }
-    } catch (NumberFormatException e) {
-      return null;
+  public static Entry entryParse(String value, Column column) {
+    if (value.equalsIgnoreCase("null")) {
+      if (column.getNotNull()) throw new NotNullException(column.getName());
+      return new Entry(null);
+    }
+
+    ColumnType columnType = column.getType();
+    switch (columnType) {
+      case INT:
+        return new Entry(Integer.valueOf(value));
+      case LONG:
+        return new Entry(Long.valueOf(value));
+      case FLOAT:
+        return new Entry(Float.valueOf(value));
+      case DOUBLE:
+        return new Entry(Double.valueOf(value));
+      case STRING:
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+          value = value.substring(1, value.length() - 1);
+        }
+        return new Entry(value);
+      default:
+        return null;
     }
   }
 
@@ -126,14 +115,15 @@ public class Table implements Iterable<Row>, Serializable {
     }
   }
 
-  @SuppressWarnings("rawtypes")
   public void alterType(String columnName, String newColumnType) {
     boolean findFlag = false;
     int columnIndex = -1;
+    boolean notNull = false;
 
     for (Column column : columns) {
       if (column.getName().equals(columnName)) {
         column.setType(newColumnType);
+        notNull = column.getNotNull();
         columnIndex++;
         findFlag = true;
         break;
@@ -148,25 +138,28 @@ public class Table implements Iterable<Row>, Serializable {
         Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
         Entry oldEntry;
         Entry newEntry;
-        Comparable alteredType;
         boolean ifError = false;
 
         while (iterator.hasNext()) {
           Pair<Entry, Row> pair = iterator.next();
           row = pair.right;
           oldEntry = row.entries.get(columnIndex);
-          alteredType = convertType(oldEntry.value, newColumnType);
-
-          if (!ifError && alteredType == null) {
-            System.out.println(
-                "Cannot convert from "
-                    + oldEntry.value.getClass().getSimpleName()
-                    + " to "
-                    + newColumnType
-                    + ", set to null.");
-            ifError = true;
+          try {
+            Column dummyColumn =
+                new Column("dummy", ColumnType.valueOf(newColumnType), 1, notNull, 128);
+            newEntry = entryParse(oldEntry.value.toString(), dummyColumn);
+          } catch (Exception e) {
+            if (!ifError) {
+              System.out.println(
+                  "Cannot convert from "
+                      + oldEntry.value.getClass().getSimpleName()
+                      + " to "
+                      + newColumnType
+                      + ", set to null.");
+              ifError = true;
+            }
+            newEntry = new Entry(null);
           }
-          newEntry = new Entry(alteredType);
           row.alterEntryType(columnIndex, newEntry);
         }
       }
@@ -229,62 +222,34 @@ public class Table implements Iterable<Row>, Serializable {
         String columnName = allColumnNames.get(i);
         Column column = findColumnByName(columnName);
 
-        ColumnType columnType = column.getType();
-
-        Comparable value;
         if (columnNames.contains(columnName)) {
-          // The column is specified, use the corresponding value
-          switch (columnType) {
-            case INT:
-              value = Integer.parseInt(valueList.get(valueIndex));
-              break;
-            case LONG:
-              value = Long.parseLong(valueList.get(valueIndex));
-              break;
-            case FLOAT:
-              value = Float.parseFloat(valueList.get(valueIndex));
-              break;
-            case DOUBLE:
-              value = Double.parseDouble(valueList.get(valueIndex));
-              break;
-            case STRING:
-              value = valueList.get(valueIndex);
-              break;
-            default:
-              throw new RuntimeException(
-                  "Unsupported column type or value: "
-                      + columnType
-                      + " "
-                      + valueList.get(valueIndex));
-          }
+          entries[i] = new Entry(entryParse(valueList.get(valueIndex), column));
           valueIndex++;
         } else {
           // The column is not specified, use a default value
           if (findColumnByName(columnName).getNotNull()) {
             throw new RuntimeException("Field '" + columnName + "' cannot be null");
           }
-          switch (columnType) {
+          switch (column.getType()) {
             case INT:
-              value = 0;
+              entries[i] = new Entry(0);
               break;
             case LONG:
-              value = 0L;
+              entries[i] = new Entry(0L);
               break;
             case FLOAT:
-              value = 0.0f;
+              entries[i] = new Entry(0.0f);
               break;
             case DOUBLE:
-              value = 0.0;
+              entries[i] = new Entry(0.0);
               break;
             case STRING:
-              value = "";
+              entries[i] = new Entry("");
               break;
             default:
-              throw new RuntimeException("Unsupported column type: " + columnType);
+              throw new RuntimeException("Unsupported column type");
           }
         }
-
-        entries[i] = new Entry(value);
       }
 
       Row row = new Row(entries);
