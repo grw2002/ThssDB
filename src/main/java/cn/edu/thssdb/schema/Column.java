@@ -16,7 +16,11 @@ public class Column implements Comparable<Column>, Serializable {
     this.name = name;
     this.type = type;
     this.primary = primary;
-    this.notNull = notNull;
+    if (primary != 0) {
+      this.notNull = true;
+    } else {
+      this.notNull = notNull;
+    }
     this.maxLength = maxLength;
     this.table = null;
   }

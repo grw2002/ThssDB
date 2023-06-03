@@ -2,14 +2,13 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.index.BPlusTree;
+import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class Table implements Iterable<Row>, Serializable {
   ReentrantReadWriteLock lock;
@@ -25,8 +24,12 @@ public class Table implements Iterable<Row>, Serializable {
     this.tableName = tableName;
     this.columns = new ArrayList<>(Arrays.asList(columns));
     this.index = new BPlusTree<>();
-    for (Column column : this.columns) {
-      column.setTable(this);
+    for (int i = 0; i < columns.length; i++) {
+      if (columns[i].getPrimary() != 0) {
+        primaryIndex = i;
+        break;
+      }
+      columns[i].setTable(this);
     }
   }
 
@@ -200,6 +203,92 @@ public class Table implements Iterable<Row>, Serializable {
       if (!index.contains(primaryKey)) {
         index.put(row.entries.get(primaryIndex), row);
       }
+    }
+  }
+
+  public void insertNameValue(List<String> columnNames, List<List<String>> values) {
+    List<String> allColumnNames =
+        getColumns().stream().map(Column::getName).collect(Collectors.toList());
+    if (columnNames.isEmpty()) {
+      columnNames = allColumnNames;
+    }
+
+    if (!new HashSet<>(allColumnNames).containsAll(columnNames)) {
+      throw new RuntimeException("Some fields don't exist");
+    }
+
+    for (List<String> valueList : values) {
+      if (valueList.size() != columnNames.size()) {
+        throw new RuntimeException("The number of values does not match the number of columns");
+      }
+
+      Entry[] entries = new Entry[allColumnNames.size()];
+      int valueIndex = 0;
+
+      for (int i = 0; i < allColumnNames.size(); i++) {
+        String columnName = allColumnNames.get(i);
+        Column column = findColumnByName(columnName);
+
+        ColumnType columnType = column.getType();
+
+        Comparable value;
+        if (columnNames.contains(columnName)) {
+          // The column is specified, use the corresponding value
+          switch (columnType) {
+            case INT:
+              value = Integer.parseInt(valueList.get(valueIndex));
+              break;
+            case LONG:
+              value = Long.parseLong(valueList.get(valueIndex));
+              break;
+            case FLOAT:
+              value = Float.parseFloat(valueList.get(valueIndex));
+              break;
+            case DOUBLE:
+              value = Double.parseDouble(valueList.get(valueIndex));
+              break;
+            case STRING:
+              value = valueList.get(valueIndex);
+              break;
+            default:
+              throw new RuntimeException(
+                  "Unsupported column type or value: "
+                      + columnType
+                      + " "
+                      + valueList.get(valueIndex));
+          }
+          valueIndex++;
+        } else {
+          // The column is not specified, use a default value
+          if (findColumnByName(columnName).getNotNull()) {
+            throw new RuntimeException("Field '" + columnName + "' cannot be null");
+          }
+          switch (columnType) {
+            case INT:
+              value = 0;
+              break;
+            case LONG:
+              value = 0L;
+              break;
+            case FLOAT:
+              value = 0.0f;
+              break;
+            case DOUBLE:
+              value = 0.0;
+              break;
+            case STRING:
+              value = "";
+              break;
+            default:
+              throw new RuntimeException("Unsupported column type: " + columnType);
+          }
+        }
+
+        entries[i] = new Entry(value);
+      }
+
+      Row row = new Row(entries);
+      insert(new Row[] {row});
     }
   }
 

@@ -76,6 +76,38 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return result;
   }
 
+  /*
+   utils begin
+  */
+
+  private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
+    String columnName = ctx.columnName().getText();
+    String columnType = ctx.typeName().getText();
+    int primary = 0;
+    boolean notnull = false;
+
+    for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
+      if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
+        notnull = true;
+      } else if (columnConstraintContext.K_PRIMARY() != null
+          && columnConstraintContext.K_KEY() != null) {
+        primary = 1;
+      }
+    }
+
+    ColumnType columnTypeEnum;
+    int stringLength = 128; // 默认字符串长度
+
+    Map<String, Object> result = parseColumnType(columnType);
+    columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
+    stringLength = (int) result.get("stringLength");
+
+    return new Column(columnName, columnTypeEnum, primary, notnull, stringLength);
+  }
+
+  /*
+   utils end
+  */
   @Override
   public LogicalPlan visitCreateUserStmt(SQLParser.CreateUserStmtContext ctx) {
     return new CreateUserPlan(ctx.userName().getText(), ctx.password().getText());
@@ -216,29 +248,26 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return null;
   }
 
-  private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
-    String columnName = ctx.columnName().getText();
-    String columnType = ctx.typeName().getText();
-    int primary = 0;
-    boolean notnull = false;
+  @Override
+  public LogicalPlan visitInsertStmt(SQLParser.InsertStmtContext ctx) {
+    String tableName = ctx.tableName().getText();
 
-    for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
-      if (columnConstraintContext.K_NOT() != null && columnConstraintContext.K_NULL() != null) {
-        notnull = true;
-      } else if (columnConstraintContext.K_PRIMARY() != null
-          && columnConstraintContext.K_KEY() != null) {
-        primary = 1;
-      }
+    // column names
+    List<String> columnNames = new ArrayList<>();
+    for (SQLParser.ColumnNameContext columnNameCtx : ctx.columnName()) {
+      columnNames.add(columnNameCtx.getText());
     }
 
-    ColumnType columnTypeEnum;
-    int stringLength = 128; // 默认字符串长度
-
-    Map<String, Object> result = parseColumnType(columnType);
-    columnTypeEnum = (ColumnType) result.get("columnTypeEnum");
-    stringLength = (int) result.get("stringLength");
-
-    return new Column(columnName, columnTypeEnum, primary, notnull, stringLength);
+    // values
+    List<List<String>> values = new ArrayList<>();
+    for (SQLParser.ValueEntryContext valueEntryCtx : ctx.valueEntry()) {
+      List<String> value = new ArrayList<>();
+      for (SQLParser.LiteralValueContext literalValueCtx : valueEntryCtx.literalValue()) {
+        value.add(literalValueCtx.getText());
+      }
+      values.add(value);
+    }
+    return new InsertPlan(tableName, columnNames, values);
   }
 
   @Override

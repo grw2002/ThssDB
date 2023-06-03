@@ -19,25 +19,36 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.query.QueryTable;
 
-public class InsertIntoTablePlan extends LogicalPlan {
+import java.util.List;
 
-  private String tableName;
-  private QueryTable rows;
+public class InsertPlan extends LogicalPlan {
 
-  public InsertIntoTablePlan(String tableName, QueryTable rows) {
+  private final String tableName;
+  private final List<String> columnNames;
+  private final List<List<String>> values;
+
+  public InsertPlan(String tableName, List<String> columnNames, List<List<String>> values) {
     super(LogicalPlanType.INSERT_INTO_TABLE);
     this.tableName = tableName;
-    this.rows = rows;
+    this.columnNames = columnNames;
+    this.values = values;
   }
 
   public String getTableName() {
     return tableName;
   }
 
+  public List<String> getColumnNames() {
+    return columnNames;
+  }
+
+  public List<List<String>> getValues() {
+    return values;
+  }
+
   @Override
   public String toString() {
-    return "InsertIntoTablePlan{" + "tableName='" + tableName + '\'' + '}';
+    return "InsertPlan{" + "tableName='" + tableName + '\'' + '}';
   }
 }

@@ -2,6 +2,7 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.exception.TableNotExistException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -199,6 +200,16 @@ public class Manager {
       throw new RuntimeException("Table " + tableName + " not found");
     }
     table.alterName(columnName, newColumnName);
+  }
+
+  public void insertIntoTable(
+      String tableName, List<String> columnNames, List<List<String>> values) {
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+    table.insertNameValue(columnNames, values);
   }
 
   private static class ManagerHolder {
