@@ -47,6 +47,11 @@ public class Manager {
       if (fileContent != null) {
         if (fileContent instanceof HashMap) {
           this.databases = (HashMap<String, Database>) fileContent;
+          for (Database database : this.databases.values()) {
+            for (Table table : database.getTables()) {
+              table.initTransientFields();
+            }
+          }
         } else {
           System.out.println("Invalid metadata file content. Expected HashMap<String, Database>.");
         }
@@ -209,7 +214,7 @@ public class Manager {
       throw new TableNotExistException();
     }
 
-    return table.getAllRows();
+    return table.getAllRowsInfo();
   }
 
   public void insertIntoTable(
@@ -220,6 +225,15 @@ public class Manager {
       throw new TableNotExistException();
     }
     table.insertNameValue(columnNames, values);
+  }
+
+  public void deleteFromTable(String tableName, List<String> conditions) {
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+    table.deleteWithConditions(conditions);
   }
 
   private static class ManagerHolder {

@@ -1,0 +1,2 @@
+INSERT INTO person VALUES ('Bob', 15)
+DELETE FROM person WHERE name = 'Bob';

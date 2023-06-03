@@ -49,6 +49,6 @@ public class InsertPlan extends LogicalPlan {
 
   @Override
   public String toString() {
-    return "InsertPlan{" + "tableName='" + tableName + '\'' + '}';
+    return "InsertPlan{" + "tableName='" + tableName + '\'' + values.toString() + '}';
   }
 }
