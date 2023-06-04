@@ -43,6 +43,46 @@ public class Table implements Iterable<Row>, Serializable {
    utils begin
   */
 
+  // util: save index into file
+  public void saveTableDataToFile() {
+    String fileName = this.tableName + ".data";
+
+    try (FileOutputStream fos = new FileOutputStream(fileName);
+         ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+
+      oos.writeObject(this.index);
+
+    } catch (IOException e) {
+      // Handle the exception
+      throw new DataFileErrorException(this.tableName);
+    }
+  }
+
+  // util: load index from file
+  public void loadTableDataFromFile() {
+    String fileName = this.tableName + ".data";
+
+    if (this.index != null) {
+      // Index is already loaded, no need to deserialize
+      return;
+    }
+
+    if (!new File(fileName).exists()) {
+      // If the data file doesn't exist, initialize the index as an empty BPlusTree
+      this.index = new BPlusTree<>();
+    } else {
+      try (FileInputStream fis = new FileInputStream(fileName);
+           ObjectInputStream ois = new ObjectInputStream(fis)) {
+
+        this.index = (BPlusTree<Entry, Row>) ois.readObject();
+
+      } catch (IOException | ClassNotFoundException e) {
+        // Handle the exception
+        throw new DataFileErrorException(this.tableName);
+      }
+    }
+  }
+
   // util: initTransientFields BPlusTree & Map
   public void initTransientFields() {
     this.index = new BPlusTree<>();
@@ -238,7 +278,7 @@ public class Table implements Iterable<Row>, Serializable {
         index.put(row.entries.get(primaryIndex), row);
       }
     }
-    //saveTableDataToFile();
+    saveTableDataToFile();
   }
 
   public void insertNameValue(List<String> columnNames, List<List<String>> values) {
@@ -389,7 +429,7 @@ public class Table implements Iterable<Row>, Serializable {
         index.remove(primaryKey);
       }
     }
-    //saveTableDataToFile();
+    saveTableDataToFile();
   }
 
   public void updateWithConditions(String columnName, String newValue, List<String> conditions) {
@@ -492,7 +532,7 @@ public class Table implements Iterable<Row>, Serializable {
       index.get(primaryKey).entries.set(columnIndexToUpdate, newValue);
     }
 
-    //saveTableDataToFile();
+    saveTableDataToFile();
   }
 
   private void serialize() {
