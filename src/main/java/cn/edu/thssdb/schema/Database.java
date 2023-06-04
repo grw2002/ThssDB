@@ -58,7 +58,7 @@ public class Database implements Serializable {
 
   public void drop(String tableName) throws RuntimeException {
     if (!tables.containsKey(tableName)) {
-      throw new TableNotExistException();
+      throw new TableNotExistException(tableName);
     }
     tables.remove(tableName);
   }

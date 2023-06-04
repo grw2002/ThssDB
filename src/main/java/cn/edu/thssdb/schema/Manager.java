@@ -221,7 +221,7 @@ public class Manager {
     Table table = this.currentDatabase.findTableByName(tableName);
 
     if (table == null) {
-      throw new TableNotExistException();
+      throw new TableNotExistException(tableName);
     }
 
     table.loadTableDataFromFile();
@@ -233,7 +233,7 @@ public class Manager {
     Table table = this.currentDatabase.findTableByName(tableName);
 
     if (table == null) {
-      throw new TableNotExistException();
+      throw new TableNotExistException(tableName);
     }
 
     table.loadTableDataFromFile();
@@ -244,7 +244,7 @@ public class Manager {
     Table table = this.currentDatabase.findTableByName(tableName);
 
     if (table == null) {
-      throw new TableNotExistException();
+      throw new TableNotExistException(tableName);
     }
 
     table.loadTableDataFromFile();
@@ -257,7 +257,7 @@ public class Manager {
     Table table = this.currentDatabase.findTableByName(tableName);
 
     if (table == null) {
-      throw new TableNotExistException();
+      throw new TableNotExistException(tableName);
     }
 
     table.loadTableDataFromFile();

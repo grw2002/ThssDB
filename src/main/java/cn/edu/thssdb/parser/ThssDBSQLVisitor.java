@@ -18,6 +18,7 @@
  */
 package cn.edu.thssdb.parser;
 
+import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
@@ -346,7 +347,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       String tableName = tableQueryContext.getText();
       Table table = currentDB.findTableByName(tableName);
       if (table == null) {
-        throw new TableNotExistException();
+        throw new TableNotExistException(tableName);
       }
       queryTables.add(new QueryTable(table));
       tables.add(table);
@@ -377,7 +378,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
             Column column = table.findColumnByName(columnName);
             if (column == null) {
               // TODO
-              throw new TableNotExistException();
+              throw new ColumnNotExistException(columnName);
             }
             metaInfos.get(i).getColumns().add(column);
             break;
