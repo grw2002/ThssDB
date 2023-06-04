@@ -339,45 +339,60 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     List<MetaInfo> metaInfos = new ArrayList<>();
     List<Table> tables = new ArrayList<>();
     List<QueryTable> queryTables = new ArrayList<>();
+    String joinCondition = null;
+
     Database currentDB = manager.getCurrentDatabase();
     if (currentDB == null) {
       throw new DatabaseNotExistException();
     }
-    for (SQLParser.TableQueryContext tableQueryContext : ctx.tableQuery()) {
-      String tableName = tableQueryContext.getText();
-      Table table = currentDB.findTableByName(tableName);
+
+    SQLParser.TableQueryContext tableQueryContext = ctx.tableQuery(0);
+
+    String tableName = tableQueryContext.tableName(0).getText();
+    Table table = currentDB.findTableByName(tableName);
+    if (table == null) {
+      throw new TableNotExistException(tableName);
+    }
+    queryTables.add(new QueryTable(table));
+    tables.add(table);
+    metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
+
+    // Check for JOIN operation
+    if (tableQueryContext.K_JOIN() != null && tableQueryContext.tableName(1) != null) {
+      // Add tableName for JOIN
+      tableName = tableQueryContext.tableName(1).getText();
+      table = currentDB.findTableByName(tableName);
       if (table == null) {
         throw new TableNotExistException(tableName);
       }
       queryTables.add(new QueryTable(table));
       tables.add(table);
-      //      System.out.println("add table " + table.tableName);
       metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
+
+      // Get JOIN condition
+      joinCondition = tableQueryContext.multipleCondition().getText();
     }
+
     for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
       SQLParser.ColumnFullNameContext columnFullNameContext = resultColumnContext.columnFullName();
       String columnName = columnFullNameContext.columnName().getText();
       if (columnFullNameContext.tableName() == null) {
         for (int i = 0; i < tables.size(); i++) {
-          Table table = tables.get(i);
-          Column column = table.findColumnByName(columnName);
-          //          System.out.println("find " + table.tableName + " " + columnName + " " +
-          // column);
+          Table tableIter = tables.get(i);
+          Column column = tableIter.findColumnByName(columnName);
           if (column == null) {
             continue;
           }
           metaInfos.get(i).getColumns().add(column);
-          // TODO
           break;
         }
       } else {
-        String tableName = columnFullNameContext.tableName().getText();
+        String tableSpecifiedName = columnFullNameContext.tableName().getText();
         for (int i = 0; i < tables.size(); i++) {
-          Table table = tables.get(i);
-          if (table.tableName.equals(tableName)) {
-            Column column = table.findColumnByName(columnName);
+          Table tableIter = tables.get(i);
+          if (tableIter.tableName.equals(tableSpecifiedName)) {
+            Column column = tableIter.findColumnByName(columnName);
             if (column == null) {
-              // TODO
               throw new ColumnNotExistException(columnName);
             }
             metaInfos.get(i).getColumns().add(column);
@@ -386,7 +401,12 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         }
       }
     }
-    return new SelectPlan(queryTables, metaInfos);
+
+    // Construct SelectPlan
+    SelectPlan selectPlan = new SelectPlan(queryTables, metaInfos, joinCondition);
+
+    return selectPlan;
   }
+
   // TODO: parser to more logical plan
 }

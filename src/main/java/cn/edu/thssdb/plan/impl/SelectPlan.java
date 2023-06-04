@@ -29,6 +29,7 @@ public class SelectPlan extends LogicalPlan {
   List<QueryTable> queryTables;
   List<MetaInfo> metaInfos;
   //  QueryResult pendingQuery;
+  String joinCondition;
 
   public List<QueryTable> getQueryTables() {
     return queryTables;
@@ -38,10 +39,15 @@ public class SelectPlan extends LogicalPlan {
     return metaInfos;
   }
 
-  public SelectPlan(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
+  public String getJoinCondition() {
+    return joinCondition;
+  }
+
+  public SelectPlan(List<QueryTable> queryTables, List<MetaInfo> metaInfos, String joinCondition) {
     super(LogicalPlanType.SELECT_FROM_TABLE);
     this.queryTables = queryTables;
     this.metaInfos = metaInfos;
+    this.joinCondition = joinCondition;
   }
 
   @Override

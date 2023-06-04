@@ -65,13 +65,6 @@ public class Database implements Serializable {
 
   public QueryResult select(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
     return new QueryResult(queryTables, metaInfos);
-    //    List<LinkedList<Row>> allRows = queryResult.allRows();
-    //    List<LinkedList<Row>> filteredRows = QueryResult.filterRow(allRows,
-    // queryResult.metaInfos);
-    //    for (LinkedList<Row> filteredRow : filteredRows) {
-    //      QueryResult.combine(filteredRow);
-    //    }
-    //    return queryResult;
   }
 
   private void recover() {
