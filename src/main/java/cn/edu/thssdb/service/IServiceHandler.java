@@ -230,9 +230,22 @@ public class IServiceHandler implements IService.Iface {
           DeletePlan deletePlan = (DeletePlan) plan;
           String tableName = deletePlan.getTableName();
           List<String> conditions = deletePlan.getConditions();
-          // Assume manager.deleteFromTable() returns a boolean indicating whether the operation was
-          // successful
+
           manager.deleteFromTable(tableName, conditions);
+          return new ExecuteStatementResp(StatusUtil.success(), false);
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+      case UPDATE_TABLE:
+        try {
+          System.out.println("[DEBUG] " + plan);
+          UpdatePlan updatePlan = (UpdatePlan) plan;
+          String tableName = updatePlan.getTableName();
+          String columnName = updatePlan.getColumnName();
+          String newValue = updatePlan.getNewValue();
+          List<String> conditions = updatePlan.getConditions();
+
+          manager.updateTable(tableName, columnName, newValue, conditions);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);

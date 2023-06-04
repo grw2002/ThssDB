@@ -236,6 +236,19 @@ public class Manager {
     table.deleteWithConditions(conditions);
   }
 
+  public void updateTable(
+      String tableName, String columnName, String newValue, List<String> conditions) {
+    // Find the table
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+
+    // Call the new update method in Table class
+    table.updateWithConditions(columnName, newValue, conditions);
+  }
+
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 

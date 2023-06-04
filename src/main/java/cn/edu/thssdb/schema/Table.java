@@ -1,13 +1,15 @@
 package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.ColumnNotExistException;
+import cn.edu.thssdb.exception.DataFileErrorException;
 import cn.edu.thssdb.exception.NotNullException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
+import org.omg.CORBA.DATA_CONVERSION;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -236,6 +238,7 @@ public class Table implements Iterable<Row>, Serializable {
         index.put(row.entries.get(primaryIndex), row);
       }
     }
+    //saveTableDataToFile();
   }
 
   public void insertNameValue(List<String> columnNames, List<List<String>> values) {
@@ -386,17 +389,110 @@ public class Table implements Iterable<Row>, Serializable {
         index.remove(primaryKey);
       }
     }
+    //saveTableDataToFile();
+  }
+
+  public void updateWithConditions(String columnName, String newValue, List<String> conditions) {
+    // Get the column index to update
+    Integer columnIndexToUpdate = columnIndex.get(columnName);
+    if (columnIndexToUpdate == null) {
+      throw new ColumnNotExistException();
+    }
+
+    // Parse new value to Entry according to the column type
+    Entry newEntryValue;
+    switch (getColumns().get(columnIndexToUpdate).getType()) {
+      case INT:
+        newEntryValue = new Entry(Integer.parseInt(newValue));
+        break;
+      case LONG:
+        newEntryValue = new Entry(Long.parseLong(newValue));
+        break;
+      case FLOAT:
+        newEntryValue = new Entry(Float.parseFloat(newValue));
+        break;
+      case DOUBLE:
+        newEntryValue = new Entry(Double.parseDouble(newValue));
+        break;
+      case STRING:
+        newEntryValue = new Entry(newValue);
+        break;
+      default:
+        throw new RuntimeException("Unsupported column type");
+    }
+
+    // Prepare a list for the primary keys of the rows to be updated
+    List<Entry> toUpdate = new ArrayList<>();
+
+    // Process the conditions
+    for (String condition : conditions) {
+      String[] parts = condition.split(" ");
+      String conditionColumnName = parts[0];
+      String operator = parts[1];
+      String value = parts[2];
+      if (value.startsWith("'") && value.endsWith("'")) {
+        value = value.substring(1, value.length() - 1);
+      }
+
+      // Iterate over all rows
+      BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+      while (iterator.hasNext()) {
+        Pair<Entry, Row> pair = iterator.next();
+        Row row = pair.right;
+
+        // Get the value in the column for this row
+        Entry columnValueEntry = row.getEntries().get(columnIndex.get(conditionColumnName));
+        String columnValue = columnValueEntry.toString();
+
+        // Check if the condition is satisfied for this row
+        switch (operator) {
+          case "=":
+            if (columnValue.equals(value)) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          case "<>":
+            if (!columnValue.equals(value)) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          case "<":
+            if (columnValue.compareTo(value) < 0) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          case ">":
+            if (columnValue.compareTo(value) > 0) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          case "<=":
+            if (columnValue.compareTo(value) <= 0) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          case ">=":
+            if (columnValue.compareTo(value) >= 0) {
+              toUpdate.add(pair.left);
+            }
+            break;
+          default:
+            throw new RuntimeException("Invalid operator: " + operator);
+        }
+      }
+    }
+
+    // Update the rows
+    update(toUpdate.toArray(new Entry[0]), columnIndexToUpdate, newEntryValue);
   }
 
   public void update(Entry[] primaryKeys, int columnIndexToUpdate, Entry newValue) {
     // TODO
     for (Entry primaryKey : primaryKeys) {
-      //      Row row = index.get(primaryKey);
-      //      row.entries.set(columnIndexToUpdate, newValue);
-      //      index.update(primaryKey, row);
-      /** ArrayList.get得到的是对象的引用，所以可以直接这么写 */
       index.get(primaryKey).entries.set(columnIndexToUpdate, newValue);
     }
+
+    //saveTableDataToFile();
   }
 
   private void serialize() {
