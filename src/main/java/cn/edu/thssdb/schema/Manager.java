@@ -181,6 +181,7 @@ public class Manager {
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.addColumn(column);
     saveMetaDataToFile("metadata.meta");
   }
@@ -191,6 +192,7 @@ public class Manager {
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.dropColumn(columnName);
     saveMetaDataToFile("metadata.meta");
   }
@@ -222,6 +224,7 @@ public class Manager {
       throw new TableNotExistException();
     }
 
+    table.loadTableDataFromFile();
     return table.getAllRowsInfo();
   }
 

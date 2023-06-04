@@ -9,6 +9,9 @@ import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -60,25 +63,42 @@ public class Table implements Iterable<Row>, Serializable {
   // util: load index from file
   public void loadTableDataFromFile() {
     String fileName = this.tableName + ".data";
+    Path loadPath = Paths.get(fileName);
 
-    if (this.index != null) {
-      // Index is already loaded, no need to deserialize
+    if (!Files.exists(loadPath)) {
+      System.out.println("No such file:" + loadPath);
+      return;
+    }
+    try {
+      if (Files.size(loadPath) == 0) {
+        System.out.println("Empty data file. No existing index.");
+        this.index = new BPlusTree<>(); // 如果文件为空，初始化 index 为一个空的 BPlusTree
+        return;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
       return;
     }
 
-    if (!new File(fileName).exists()) {
-      // If the data file doesn't exist, initialize the index as an empty BPlusTree
-      this.index = new BPlusTree<>();
-    } else {
-      try (FileInputStream fis = new FileInputStream(fileName);
-          ObjectInputStream ois = new ObjectInputStream(fis)) {
+    try (InputStream is = Files.newInputStream(loadPath);
+        ObjectInputStream ois = new ObjectInputStream(is)) {
 
-        this.index = (BPlusTree<Entry, Row>) ois.readObject();
+      Object fileContent = ois.readObject();
+      if (fileContent != null) {
+        if (fileContent instanceof BPlusTree) {
+          this.index = (BPlusTree<Entry, Row>) fileContent;
+          System.out.println("loading...");
+        } else {
+          System.out.println("Invalid data file content. Expected BPlusTree<Entry, Row>.");
+        }
+      } else {
+        System.out.println("Empty data file. Initializing index as an empty BPlusTree.");
 
-      } catch (IOException | ClassNotFoundException e) {
-        // Handle the exception
-        throw new DataFileErrorException(this.tableName + "," + e.toString());
+        this.index = new BPlusTree<>();
       }
+      System.out.println("loaded");
+    } catch (IOException | ClassNotFoundException e) {
+      throw new DataFileErrorException(this.tableName + "," + e.toString());
     }
   }
 
