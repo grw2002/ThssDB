@@ -10,6 +10,6 @@ public class DataFileErrorException extends RuntimeException {
 
   @Override
   public String getMessage() {
-    return "Exception: Error with data file " + dataTableName+ ".data !";
+    return "Exception: Error with data file " + dataTableName + "!";
   }
 }

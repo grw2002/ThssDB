@@ -7,7 +7,6 @@ import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
-import org.omg.CORBA.DATA_CONVERSION;
 
 import java.io.*;
 import java.util.*;
@@ -48,13 +47,13 @@ public class Table implements Iterable<Row>, Serializable {
     String fileName = this.tableName + ".data";
 
     try (FileOutputStream fos = new FileOutputStream(fileName);
-         ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
 
       oos.writeObject(this.index);
 
     } catch (IOException e) {
       // Handle the exception
-      throw new DataFileErrorException(this.tableName);
+      throw new DataFileErrorException(this.tableName + "," + e.toString());
     }
   }
 
@@ -72,13 +71,13 @@ public class Table implements Iterable<Row>, Serializable {
       this.index = new BPlusTree<>();
     } else {
       try (FileInputStream fis = new FileInputStream(fileName);
-           ObjectInputStream ois = new ObjectInputStream(fis)) {
+          ObjectInputStream ois = new ObjectInputStream(fis)) {
 
         this.index = (BPlusTree<Entry, Row>) ois.readObject();
 
       } catch (IOException | ClassNotFoundException e) {
         // Handle the exception
-        throw new DataFileErrorException(this.tableName);
+        throw new DataFileErrorException(this.tableName + "," + e.toString());
       }
     }
   }

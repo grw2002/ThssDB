@@ -232,6 +232,7 @@ public class Manager {
     if (table == null) {
       throw new TableNotExistException();
     }
+
     table.loadTableDataFromFile();
     table.insertNameValue(columnNames, values);
   }
@@ -242,6 +243,7 @@ public class Manager {
     if (table == null) {
       throw new TableNotExistException();
     }
+
     table.loadTableDataFromFile();
     table.deleteWithConditions(conditions);
   }
