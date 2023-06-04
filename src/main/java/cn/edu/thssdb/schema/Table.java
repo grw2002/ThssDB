@@ -197,7 +197,7 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     if (!findFlag) {
-      throw new ColumnNotExistException();
+      throw new ColumnNotExistException(columnName);
     } else {
       if (this.index.size() > 0) {
         Row row;
@@ -228,7 +228,7 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     if (!findFlag) {
-      throw new ColumnNotExistException();
+      throw new ColumnNotExistException(columnName);
     } else {
       if (this.index.size() > 0) {
         Row row;
@@ -277,7 +277,7 @@ public class Table implements Iterable<Row>, Serializable {
     }
 
     if (!findFlag) {
-      throw new ColumnNotExistException();
+      throw new ColumnNotExistException(columnName);
     }
   }
 
@@ -455,7 +455,7 @@ public class Table implements Iterable<Row>, Serializable {
     // Get the column index to update
     Integer columnIndexToUpdate = columnIndex.get(columnName);
     if (columnIndexToUpdate == null) {
-      throw new ColumnNotExistException();
+      throw new ColumnNotExistException(columnName);
     }
 
     // Parse new value to Entry according to the column type

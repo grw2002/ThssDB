@@ -11,3 +11,7 @@ INSERT INTO person VALUES ('Carol', 18)
 INSERT INTO person VALUES ('Dava', 19)
 SHOW ROWS person
 UPDATE person SET name = 'Carol' WHERE name = 'Bob';
+SELECT ID FROM person WHERE name = 'Bob';
+CREATE TABLE school (student String(256), ID Int not null, PRIMARY KEY(ID))
+INSERT INTO school VALUES ('Bob', 17)
+SELECT person.ID, person.name FROM person JOIN class ON person.name = class.student WHERE person.name = 'Bob';
