@@ -38,3 +38,6 @@ java/build/**
 
 # metadata File
 *.meta
+
+# indexdata File
+*.data

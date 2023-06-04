@@ -177,18 +177,24 @@ public class Manager {
 
   public void addColumn(String tableName, Column column) {
     Table table = currentDatabase.findTableByName(tableName);
+
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.addColumn(column);
+    saveMetaDataToFile("metadata.meta");
   }
 
   public void dropColumn(String tableName, String columnName) {
     Table table = currentDatabase.findTableByName(tableName);
+
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.dropColumn(columnName);
+    saveMetaDataToFile("metadata.meta");
   }
 
   public void alterColumnType(String tableName, String columnName, String newColumnType) {
@@ -196,7 +202,9 @@ public class Manager {
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.alterType(columnName, newColumnType);
+    saveMetaDataToFile("metadata.meta");
   }
 
   public void renameColumn(String tableName, String columnName, String newColumnName) {
@@ -204,7 +212,9 @@ public class Manager {
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " not found");
     }
+
     table.alterName(columnName, newColumnName);
+    saveMetaDataToFile("metadata.meta");
   }
 
   public List<String> showRowsInTable(String tableName) {
@@ -214,6 +224,7 @@ public class Manager {
       throw new TableNotExistException();
     }
 
+    table.loadTableDataFromFile();
     return table.getAllRowsInfo();
   }
 
@@ -224,6 +235,8 @@ public class Manager {
     if (table == null) {
       throw new TableNotExistException();
     }
+
+    table.loadTableDataFromFile();
     table.insertNameValue(columnNames, values);
   }
 
@@ -233,7 +246,23 @@ public class Manager {
     if (table == null) {
       throw new TableNotExistException();
     }
+
+    table.loadTableDataFromFile();
     table.deleteWithConditions(conditions);
+  }
+
+  public void updateTable(
+      String tableName, String columnName, String newValue, List<String> conditions) {
+    // Find the table
+    Table table = this.currentDatabase.findTableByName(tableName);
+
+    if (table == null) {
+      throw new TableNotExistException();
+    }
+
+    table.loadTableDataFromFile();
+    // Call the new update method in Table class
+    table.updateWithConditions(columnName, newValue, conditions);
   }
 
   private static class ManagerHolder {

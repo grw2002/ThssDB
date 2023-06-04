@@ -33,6 +33,7 @@ public class Database implements Serializable {
 
   public List<Column> getTableColumns(String tableName) {
     Table table = findTableByName(tableName);
+
     if (table == null) {
       throw new RuntimeException("Table " + tableName + " does not exist");
     }
