@@ -117,7 +117,7 @@ public class QueryResultTest {
   @Test
   public void testSelectFromMultipleTables() {
     String[] attrs = new String[] {"name", "age", "age", "name", "id", "phone", "location"};
-    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 JOIN table2 ON 1 = 1;";
+    String sql = "SELECT " + String.join(",", attrs) + " FROM table1,table2;";
     ExecuteStatementResp res = executeStatementResp(sql);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
 

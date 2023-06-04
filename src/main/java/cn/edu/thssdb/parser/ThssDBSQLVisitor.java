@@ -346,22 +346,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       throw new DatabaseNotExistException();
     }
 
-    SQLParser.TableQueryContext tableQueryContext = ctx.tableQuery(0);
-
-    String tableName = tableQueryContext.tableName(0).getText();
-    Table table = currentDB.findTableByName(tableName);
-    if (table == null) {
-      throw new TableNotExistException(tableName);
-    }
-    queryTables.add(new QueryTable(table));
-    tables.add(table);
-    metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
-
-    // Check for JOIN operation
-    if (tableQueryContext.K_JOIN() != null && tableQueryContext.tableName(1) != null) {
-      // Add tableName for JOIN
-      tableName = tableQueryContext.tableName(1).getText();
-      table = currentDB.findTableByName(tableName);
+    for (SQLParser.TableQueryContext tableQueryContext : ctx.tableQuery()) {
+      String tableName = tableQueryContext.tableName(0).getText();
+      Table table = currentDB.findTableByName(tableName);
       if (table == null) {
         throw new TableNotExistException(tableName);
       }
@@ -369,8 +356,21 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       tables.add(table);
       metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
 
-      // Get JOIN condition
-      joinCondition = tableQueryContext.multipleCondition().getText();
+      // Check for JOIN operation
+      if (tableQueryContext.tableName(1) != null) {
+        // Add tableName for JOIN
+        tableName = tableQueryContext.tableName(1).getText();
+        table = currentDB.findTableByName(tableName);
+        if (table == null) {
+          throw new TableNotExistException(tableName);
+        }
+        queryTables.add(new QueryTable(table));
+        tables.add(table);
+        metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
+
+        // Get JOIN condition
+        joinCondition = tableQueryContext.multipleCondition().getText();
+      }
     }
 
     for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
