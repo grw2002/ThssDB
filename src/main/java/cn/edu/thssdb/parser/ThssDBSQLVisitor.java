@@ -275,9 +275,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
-  public LogicalPlan visitShowRowsStmt(SQLParser.ShowRowsStmtContext ctx) {
+  public LogicalPlan visitSelectAllStmt(SQLParser.SelectAllStmtContext ctx) {
     String tableName = ctx.tableName().getText();
-    return new ShowRowsPlan(tableName);
+    return new SelectAllPlan(tableName);
   }
 
   @Override
