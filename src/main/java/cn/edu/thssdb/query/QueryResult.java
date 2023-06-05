@@ -1,9 +1,8 @@
 package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.exception.ColumnNotExistException;
-import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.Entry;
-import cn.edu.thssdb.schema.Row;
+import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.utils.Cell;
 import cn.edu.thssdb.utils.Pair;
 
@@ -16,6 +15,25 @@ public class QueryResult {
   public List<Integer> index;
   private List<Cell> attrs;
   private String joinCondition;
+  private String whereCondition;
+
+  Manager manager;
+
+  public QueryResult(
+      List<QueryTable> queryTables,
+      List<MetaInfo> metaInfos,
+      String joinCondition,
+      String whereCondition) {
+    // TODO
+    this.metaInfos = metaInfos;
+    this.queryTables = queryTables;
+    this.index = new ArrayList<>();
+    this.attrs = new ArrayList<>();
+    this.joinCondition = joinCondition;
+    this.whereCondition = whereCondition;
+    this.manager = Manager.getInstance();
+    // this.result = new Pair<>(new ArrayList<>(), new ArrayList<>());
+  }
 
   public static Pair<List<String>, List<List<String>>> makeResult(QueryResult queryResult) {
     List<LinkedList<Row>> allRows = queryResult.getMatchRows();
@@ -44,16 +62,6 @@ public class QueryResult {
     return result;
   }
 
-  public QueryResult(List<QueryTable> queryTables, List<MetaInfo> metaInfos, String joinCondition) {
-    // TODO
-    this.metaInfos = metaInfos;
-    this.queryTables = queryTables;
-    this.index = new ArrayList<>();
-    this.attrs = new ArrayList<>();
-    this.joinCondition = joinCondition;
-    // this.result = new Pair<>(new ArrayList<>(), new ArrayList<>());
-  }
-
   public List<String> getColumnsList() {
     List<String> columns = new ArrayList<>();
     for (MetaInfo metaInfo : metaInfos) {
@@ -75,56 +83,119 @@ public class QueryResult {
     List<LinkedList<Row>> newrows = new LinkedList<>();
     List<LinkedList<Row>> tmp;
     oldrows.add(new LinkedList<>());
-    for (QueryTable queryTable : queryTables) {
+    Database currentDb = manager.getCurrentDatabase();
+    if (currentDb == null) {
+      throw new DatabaseNotExistException();
+    }
+    for (int i = 0; i < queryTables.size(); i++) {
+      QueryTable queryTable = queryTables.get(i);
+      MetaInfo metaInfo = metaInfos.get(i);
+      Table table = queryTable.table;
+
       while (queryTable.hasNext()) {
         Row row = queryTable.next();
-        for (LinkedList<Row> oldrow : oldrows) {
-          LinkedList<Row> newRow = new LinkedList<>(oldrow);
-          newRow.add(row);
+        boolean joinConditionSatisfied = true;
+        boolean whereConditionSatified = true;
 
-          // Check if join condition exists
-          if (joinCondition != null) {
-            // Parse join condition
-            String[] parts = joinCondition.split("=");
-            String[] leftPart = parts[0].split("\\.");
-            String[] rightPart = parts[1].split("\\.");
+        //        if (joinCondition != null) {
+        //          // Parse join condition
+        //          String[] parts = joinCondition.split("=");
+        //          String[] leftPart = parts[0].split("\\.");
+        //          String[] rightPart = parts[1].split("\\.");
+        //
+        //          String leftTableName = leftPart[0];
+        //          String leftAttrName = leftPart[1];
+        //          String rightTableName = rightPart[0];
+        //          String rightAttrName = rightPart[1];
+        ////
+        //          // Check join condition
+        //          for (MetaInfo metaInfo1 : metaInfos) {
+        //            if (metaInfo1.getTableName().equals(leftTableName)) {
+        //              Column column = table.findColumnByName(leftAttrName);
+        //              if (column != null) {
+        //                int leftIndex = column.getIndex();
+        //                Entry leftEntry = row.getEntries().get(leftIndex);
+        //                if (metaInfo1.getTableName().equals(rightTableName)) {
+        //                  column = metaInfo1.findColumnByName(rightAttrName);
+        //                  if (column != null) {
+        //                    int rightIndex = column.getIndex();
+        //                    Entry rightEntry = row.getEntries().get(rightIndex);
+        //                    if (!leftEntry.equals(rightEntry)) {
+        //                      joinConditionSatisfied = false;
+        //                      break;
+        //                    }
+        //                  } else {
+        //                    throw new ColumnNotExistException(rightAttrName);
+        //                  }
+        //                }
+        //              } else {
+        //                throw new ColumnNotExistException(leftAttrName);
+        //              }
+        //            }
+        //          }
+        //        }
 
-            String leftTableName = leftPart[0];
-            String leftAttrName = leftPart[1];
-            String rightTableName = rightPart[0];
-            String rightAttrName = rightPart[1];
+        if (whereCondition != null) {
+          // Parse where condition
+          //          System.out.println(whereCondition);
+          String[] parts = whereCondition.split(" ");
+          String conditionColumnName = parts[0];
+          String operator = parts[1];
+          String value = parts[2];
+          if (value.startsWith("'") && value.endsWith("'")) {
+            value = value.substring(1, value.length() - 1);
+          }
 
-            // Check join condition
-            boolean joinConditionSatisfied = true;
-            for (MetaInfo metaInfo : metaInfos) {
-              if (metaInfo.getTableName().equals(leftTableName)) {
-                Column column = metaInfo.findColumnByName(leftAttrName);
-                if (column != null) {
-                  int leftIndex = column.getIndex();
-                  Entry leftEntry = row.getEntries().get(leftIndex);
-                  if (metaInfo.getTableName().equals(rightTableName)) {
-                    column = metaInfo.findColumnByName(rightAttrName);
-                    if (column != null) {
-                      int rightIndex = column.getIndex();
-                      Entry rightEntry = row.getEntries().get(rightIndex);
-                      if (!leftEntry.equals(rightEntry)) {
-                        joinConditionSatisfied = false;
-                        break;
-                      }
-                    } else {
-                      throw new ColumnNotExistException(rightAttrName);
-                    }
-                  }
-                } else {
-                  throw new ColumnNotExistException(leftAttrName);
-                }
+          // Get the value in the column for this row
+
+          if (table.findColumnIndexByName(conditionColumnName) == -1) {
+            throw new ColumnNotExistException(conditionColumnName);
+          }
+          Entry columnValueEntry =
+              row.getEntries().get(table.findColumnIndexByName(conditionColumnName));
+          String columnValue = columnValueEntry.toString();
+
+          // Check if the condition is satisfied for this row
+          switch (operator) {
+            case "=":
+              if (!columnValue.equals(value)) {
+                whereConditionSatified = false;
               }
-            }
+              break;
+            case "<>":
+              if (columnValue.equals(value)) {
+                whereConditionSatified = false;
+              }
+              break;
+            case "<":
+              if (!(columnValue.compareTo(value) < 0)) {
+                whereConditionSatified = false;
+              }
+              break;
+            case ">":
+              if (!(columnValue.compareTo(value) > 0)) {
+                whereConditionSatified = false;
+              }
+              break;
+            case "<=":
+              if (!(columnValue.compareTo(value) <= 0)) {
+                whereConditionSatified = false;
+              }
+              break;
+            case ">=":
+              if (!(columnValue.compareTo(value) >= 0)) {
+                whereConditionSatified = false;
+              }
+              break;
+            default:
+              throw new RuntimeException("Invalid operator: " + operator);
+          }
+        }
 
-            if (joinConditionSatisfied) {
-              newrows.add(newRow);
-            }
-          } else {
+        if (joinConditionSatisfied && whereConditionSatified) {
+          for (LinkedList<Row> oldrow : oldrows) {
+            LinkedList<Row> newRow = new LinkedList<>(oldrow);
+            newRow.add(row);
             newrows.add(newRow);
           }
         }

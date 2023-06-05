@@ -4,6 +4,7 @@ import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.SelectPlan;
+import cn.edu.thssdb.plan.impl.UpdatePlan;
 import cn.edu.thssdb.rpc.thrift.ExecuteStatementResp;
 import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.type.ColumnType;
@@ -79,6 +80,21 @@ public class QueryResultTest {
 
   private ExecuteStatementResp executeStatementResp(String sql) {
     LogicalPlan plan = LogicalGenerator.generate(sql, manager);
+    if (plan.getType() == LogicalPlan.LogicalPlanType.UPDATE_TABLE) {
+      try {
+        System.out.println("[DEBUG] " + plan);
+        UpdatePlan updatePlan = (UpdatePlan) plan;
+        String tableName = updatePlan.getTableName();
+        String columnName = updatePlan.getColumnName();
+        String newValue = updatePlan.getNewValue();
+        List<String> conditions = updatePlan.getConditions();
+
+        manager.updateTable(tableName, columnName, newValue, conditions);
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      } catch (Exception e) {
+        return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+      }
+    }
     assertEquals(plan.getType(), LogicalPlan.LogicalPlanType.SELECT_FROM_TABLE);
     System.out.println("[DEBUG] " + plan);
     SelectPlan selectPlan = ((SelectPlan) plan);
@@ -88,7 +104,8 @@ public class QueryResultTest {
             .select(
                 selectPlan.getQueryTables(),
                 selectPlan.getMetaInfos(),
-                selectPlan.getJoinCondition());
+                selectPlan.getJoinCondition(),
+                selectPlan.getWhereCondition());
     Pair<List<String>, List<List<String>>> result = QueryResult.makeResult(queryResult);
     ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
     res.columnsList = result.left;
@@ -151,27 +168,27 @@ public class QueryResultTest {
     }
   }
 
-  //  @Test
-  //  public void testTest() {
-  //    String[] attrs = new String[] {"age", "name"};
-  ////    String sql = "SELECT " + String.join(",", attrs) + " FROM table1;";
-  //    String sql="SELECT table1.id,table1.name,table2.location FROM table1,table2;";
-  //    ExecuteStatementResp res = executeStatementResp(sql);
-  //    System.out.println("[DEBUG] " + res.columnsList + res.rowList);
-  //
-  //    Database db = manager.getCurrentDatabase();
-  //    Table table1 = db.findTableByName("table1");
-  //    assertEquals(res.columnsList.size(), 2);
-  //    assertEquals(String.join("#", res.columnsList), String.join("#", attrs));
-  //    assertEquals(res.rowList.size(), 7);
-  //    for (int i = 0; i < res.rowList.size(); i++) {
-  //      List<String> strings = res.rowList.get(i);
-  //      assertEquals(strings.size(), 2);
-  //      List<Entry> entries = rows1[i].getEntries();
-  //      for (int j = 0; j < strings.size(); j++) {
-  //        assertEquals(
-  //            entries.get(table1.findColumnIndexByName(attrs[j])).toString(), strings.get(j));
-  //      }
-  //    }
-  //  }
+  @Test
+  public void testWhere() {
+    String[] attrs = new String[] {"age", "name"};
+    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE age > 21;";
+    //    String sql="UPDATE table1 SET age=age+1 WHERE age > 1;";
+    ExecuteStatementResp res = executeStatementResp(sql);
+    System.out.println("[DEBUG] " + res.columnsList + res.rowList);
+
+    Database db = manager.getCurrentDatabase();
+    Table table1 = db.findTableByName("table1");
+    assertEquals(res.columnsList.size(), 2);
+    assertEquals(String.join("#", res.columnsList), String.join("#", attrs));
+    assertEquals(res.rowList.size(), 5);
+    for (int i = 0; i < res.rowList.size(); i++) {
+      List<String> strings = res.rowList.get(i);
+      assertEquals(strings.size(), 2);
+      List<Entry> entries = rows1[i + 2].getEntries();
+      for (int j = 0; j < strings.size(); j++) {
+        assertEquals(
+            entries.get(table1.findColumnIndexByName(attrs[j])).toString(), strings.get(j));
+      }
+    }
+  }
 }

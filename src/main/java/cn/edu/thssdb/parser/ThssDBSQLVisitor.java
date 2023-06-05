@@ -334,12 +334,17 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return new UpdatePlan(tableName, columnName, newValue, conditions);
   }
 
+  public LogicalPlan visitSelectStmt2(SQLParser.SelectStmtContext ctx) {
+    return new SelectPlan(new ArrayList<>(), new ArrayList<>(), "", "");
+  }
+
   @Override
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) throws RuntimeException {
     List<MetaInfo> metaInfos = new ArrayList<>();
     List<Table> tables = new ArrayList<>();
     List<QueryTable> queryTables = new ArrayList<>();
     String joinCondition = null;
+    String whereCondition = null;
 
     Database currentDB = manager.getCurrentDatabase();
     if (currentDB == null) {
@@ -369,7 +374,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
 
         // Get JOIN condition
-        joinCondition = tableQueryContext.multipleCondition().getText();
+        List<String> joinConditions = new ArrayList<>();
+        traverseConditionTree(tableQueryContext.multipleCondition(), joinConditions);
+        joinCondition = String.join("", joinConditions);
       }
     }
 
@@ -402,8 +409,14 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       }
     }
 
+    if (ctx.K_WHERE() != null) {
+      List<String> whereConditions = new ArrayList<>();
+      traverseConditionTree(ctx.multipleCondition(), whereConditions);
+      whereCondition = String.join("", whereConditions);
+    }
+
     // Construct SelectPlan
-    SelectPlan selectPlan = new SelectPlan(queryTables, metaInfos, joinCondition);
+    SelectPlan selectPlan = new SelectPlan(queryTables, metaInfos, joinCondition, whereCondition);
 
     return selectPlan;
   }

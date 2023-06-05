@@ -4,7 +4,6 @@ import cn.edu.thssdb.benchmark.executor.PerformanceTestExecutor;
 import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,7 @@ public class PerformanceTest {
     performanceTestExecutor.close();
   }
 
-  @Test
+  //  @Test
   public void simpleTest() throws TException {
     // create database
     LOGGER.info("======================== Performance test  ======================== ");

@@ -64,8 +64,11 @@ public class Database implements Serializable {
   }
 
   public QueryResult select(
-      List<QueryTable> queryTables, List<MetaInfo> metaInfos, String joinCondition) {
-    return new QueryResult(queryTables, metaInfos, joinCondition);
+      List<QueryTable> queryTables,
+      List<MetaInfo> metaInfos,
+      String joinCondition,
+      String whereCondition) {
+    return new QueryResult(queryTables, metaInfos, joinCondition, whereCondition);
   }
 
   private void recover() {

@@ -263,7 +263,8 @@ public class IServiceHandler implements IService.Iface {
                 .select(
                     selectPlan.getQueryTables(),
                     selectPlan.getMetaInfos(),
-                    selectPlan.getJoinCondition());
+                    selectPlan.getJoinCondition(),
+                    selectPlan.getWhereCondition());
         Pair<List<String>, List<List<String>>> result = queryResult.makeResult(queryResult);
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
         res.columnsList = result.left;
