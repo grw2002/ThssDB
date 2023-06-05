@@ -167,6 +167,15 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
+  public LogicalPlan visitShowTablesStmt(SQLParser.ShowTablesStmtContext ctx) {
+    if (!ctx.databaseName().isEmpty()) {
+      String databaseName = ctx.databaseName().getText();
+      return new ShowTablesPlan(databaseName);
+    }
+    return new ShowTablesPlan(manager.getCurrentDatabaseName());
+  }
+
+  @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
     String tableName = ctx.tableName().getText();
     List<Column> columns = new ArrayList<>();
@@ -275,12 +284,6 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   }
 
   @Override
-  public LogicalPlan visitSelectAllStmt(SQLParser.SelectAllStmtContext ctx) {
-    String tableName = ctx.tableName().getText();
-    return new SelectAllPlan(tableName);
-  }
-
-  @Override
   public LogicalPlan visitInsertStmt(SQLParser.InsertStmtContext ctx) {
     String tableName = ctx.tableName().getText();
 
@@ -382,6 +385,16 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
     for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
       SQLParser.ColumnFullNameContext columnFullNameContext = resultColumnContext.columnFullName();
+      if (resultColumnContext.MUL() != null) { // Check for the '*' symbol
+        for (MetaInfo metaInfo : metaInfos) {
+          Table table = currentDB.findTableByName(metaInfo.getTableName());
+          if (table == null) {
+            throw new TableNotExistException(metaInfo.getTableName());
+          }
+          metaInfo.getColumns().addAll(table.getColumns());
+        }
+        continue;
+      }
       String columnName = columnFullNameContext.columnName().getText();
       if (columnFullNameContext.tableName() == null) {
         for (int i = 0; i < tables.size(); i++) {
