@@ -28,7 +28,6 @@ sqlStmt :
     | useDbStmt
     | showDbStmt
     | showTableStmt
-    | selectAllStmt
     | quitStmt
     | updateStmt ;
 
@@ -81,9 +80,6 @@ alterTableStmt:
         | K_ADD K_CONSTRAINT tableConstraint
         )
     ;
-
-selectAllStmt:
-    K_SELECT '*' K_FROM tableName;
 
 insertStmt :
     K_INSERT K_INTO tableName ( '(' columnName ( ',' columnName )* ')' )?
