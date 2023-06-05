@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Manager {
   private HashMap<String, Database> databases;
@@ -21,9 +23,18 @@ public class Manager {
   /* Persistence
    * saveMetaDataToFile & loadMetaDataFromFile
    */
+  public void saveTableDataToFile() {
+    for (Table table : currentDatabase.getTables()) {
+      // 保存每个表的数据
+      table.saveTableDataToFile();
+    }
+  }
+
   public void saveMetaDataToFile(String filePath) {
-    try (OutputStream os = Files.newOutputStream(Paths.get(filePath));
-        ObjectOutputStream oos = new ObjectOutputStream(os)) {
+    try (FileOutputStream fos = new FileOutputStream(filePath);
+        GZIPOutputStream gos = new GZIPOutputStream(fos);
+        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
+
       oos.writeObject(this.databases);
     } catch (IOException e) {
       e.printStackTrace();
@@ -41,8 +52,10 @@ public class Manager {
       e.printStackTrace();
       return; // 如果发生异常，直接返回
     }
-    try (InputStream is = Files.newInputStream(loadPath);
-        ObjectInputStream ois = new ObjectInputStream(is)) {
+    try (FileInputStream fis = new FileInputStream(filePath);
+        GZIPInputStream gis = new GZIPInputStream(fis);
+        ObjectInputStream ois = new ObjectInputStream(gis)) {
+
       Object fileContent = ois.readObject();
       if (fileContent != null) {
         if (fileContent instanceof HashMap) {
@@ -106,8 +119,6 @@ public class Manager {
       throw new DatabaseExistsException();
     }
     createDatabaseIfNotExists(databaseName);
-
-    saveMetaDataToFile("metadata.meta");
   }
 
   private void createDatabaseIfNotExists(String databaseName) {
@@ -127,12 +138,19 @@ public class Manager {
     } else {
       throw new DatabaseNotExistException();
     }
-
-    saveMetaDataToFile("metadata.meta");
   }
 
   public void switchDatabase(String databaseName) throws RuntimeException {
-    // TODO
+    // 如果当前数据库不为空
+    if (currentDatabase != null) {
+      // 遍历当前数据库中的所有表
+      for (Table table : currentDatabase.getTables()) {
+        // 保存每个表的数据
+        table.saveTableDataToFile();
+      }
+    }
+
+    // 切换数据库
     if (databases.containsKey(databaseName)) {
       currentDatabase = databases.get(databaseName);
     } else {
@@ -151,8 +169,6 @@ public class Manager {
 
     Column[] columnArray = columns.toArray(new Column[columns.size()]);
     currentDatabase.create(tableName, columnArray);
-
-    saveMetaDataToFile("metadata.meta");
   }
 
   public void dropTable(String tableName, boolean ifExists) {
@@ -163,8 +179,6 @@ public class Manager {
     if (!ifExists) {
       currentDatabase.drop(tableName);
     }
-
-    saveMetaDataToFile("metadata.meta");
   }
 
   public List<Column> showTable(String tableName) {
@@ -183,7 +197,6 @@ public class Manager {
     }
 
     table.addColumn(column);
-    saveMetaDataToFile("metadata.meta");
   }
 
   public void dropColumn(String tableName, String columnName) {
@@ -194,7 +207,6 @@ public class Manager {
     }
 
     table.dropColumn(columnName);
-    saveMetaDataToFile("metadata.meta");
   }
 
   public void alterColumnType(String tableName, String columnName, String newColumnType) {
@@ -204,7 +216,6 @@ public class Manager {
     }
 
     table.alterType(columnName, newColumnType);
-    saveMetaDataToFile("metadata.meta");
   }
 
   public void renameColumn(String tableName, String columnName, String newColumnName) {
@@ -214,7 +225,6 @@ public class Manager {
     }
 
     table.alterName(columnName, newColumnName);
-    saveMetaDataToFile("metadata.meta");
   }
 
   public List<String> showRowsInTable(String tableName) {

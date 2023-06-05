@@ -15,6 +15,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Table implements Iterable<Row>, Serializable {
   ReentrantReadWriteLock lock;
@@ -50,7 +52,8 @@ public class Table implements Iterable<Row>, Serializable {
     String fileName = this.tableName + ".data";
 
     try (FileOutputStream fos = new FileOutputStream(fileName);
-        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+        GZIPOutputStream gos = new GZIPOutputStream(fos);
+        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
 
       oos.writeObject(this.index);
 
@@ -80,8 +83,9 @@ public class Table implements Iterable<Row>, Serializable {
       return;
     }
 
-    try (InputStream is = Files.newInputStream(loadPath);
-        ObjectInputStream ois = new ObjectInputStream(is)) {
+    try (FileInputStream fis = new FileInputStream(fileName);
+        GZIPInputStream gis = new GZIPInputStream(fis);
+        ObjectInputStream ois = new ObjectInputStream(gis)) {
 
       Object fileContent = ois.readObject();
       if (fileContent != null) {
@@ -93,7 +97,6 @@ public class Table implements Iterable<Row>, Serializable {
         }
       } else {
         System.out.println("Empty data file. Initializing index as an empty BPlusTree.");
-
         this.index = new BPlusTree<>();
       }
       System.out.println("loaded");
@@ -297,7 +300,6 @@ public class Table implements Iterable<Row>, Serializable {
         index.put(row.entries.get(primaryIndex), row);
       }
     }
-    saveTableDataToFile();
   }
 
   public void insertNameValue(List<String> columnNames, List<List<String>> values) {
@@ -448,7 +450,6 @@ public class Table implements Iterable<Row>, Serializable {
         index.remove(primaryKey);
       }
     }
-    saveTableDataToFile();
   }
 
   public void updateWithConditions(String columnName, String newValue, List<String> conditions) {
@@ -550,8 +551,6 @@ public class Table implements Iterable<Row>, Serializable {
     for (Entry primaryKey : primaryKeys) {
       index.get(primaryKey).entries.set(columnIndexToUpdate, newValue);
     }
-
-    saveTableDataToFile();
   }
 
   private void serialize() {

@@ -55,6 +55,9 @@ public class IServiceHandler implements IService.Iface {
 
   @Override
   public DisconnectResp disconnect(DisconnectReq req) throws TException {
+    manager.saveMetaDataToFile("metadata");
+    manager.saveTableDataToFile();
+
     return new DisconnectResp(StatusUtil.success());
   }
 
