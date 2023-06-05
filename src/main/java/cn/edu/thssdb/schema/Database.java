@@ -5,6 +5,8 @@ import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.query.MetaInfo;
 import cn.edu.thssdb.query.QueryResult;
 import cn.edu.thssdb.query.QueryTable;
+import cn.edu.thssdb.query.QueryTable2;
+import cn.edu.thssdb.sql.SQLParser;
 
 import java.io.Serializable;
 import java.util.*;
@@ -69,6 +71,35 @@ public class Database implements Serializable {
       String joinCondition,
       String whereCondition) {
     return new QueryResult(queryTables, metaInfos, joinCondition, whereCondition);
+  }
+
+  public QueryTable2 select(
+      List<SQLParser.TableQueryContext> tableQuerys,
+      SQLParser.MultipleConditionContext whereConditions)
+      throws RuntimeException {
+    List<QueryTable2> queryTables = new ArrayList<>();
+    for (SQLParser.TableQueryContext tableQuery : tableQuerys) {
+      List<QueryTable2> subtables = new ArrayList<>();
+      for (SQLParser.TableNameContext tableNameContext : tableQuery.tableName()) {
+        String tableName = tableNameContext.getText();
+        Table table = findTableByName(tableName);
+        if (table == null) {
+          throw new TableNotExistException(tableName);
+        }
+        subtables.add(table);
+      }
+      SQLParser.MultipleConditionContext joinConditions = tableQuery.multipleCondition();
+      if (joinConditions != null) {
+        queryTables.add(QueryTable2.joinQueryTables(subtables, joinConditions));
+      } else {
+        queryTables.add(QueryTable2.joinQueryTables(subtables));
+      }
+    }
+    if (whereConditions == null) {
+      return QueryTable2.joinQueryTables(queryTables);
+    } else {
+      return QueryTable2.joinQueryTables(queryTables, whereConditions);
+    }
   }
 
   private void recover() {

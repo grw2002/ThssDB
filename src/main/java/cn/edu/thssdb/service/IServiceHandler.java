@@ -3,7 +3,8 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
-import cn.edu.thssdb.query.QueryResult;
+import cn.edu.thssdb.query.QueryResult2;
+import cn.edu.thssdb.query.QueryTable2;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;
@@ -18,7 +19,6 @@ import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
-import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
@@ -61,7 +61,7 @@ public class IServiceHandler implements IService.Iface {
     return new DisconnectResp(StatusUtil.success());
   }
 
-  @Override
+  //  @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) throws TException {
     if (req.getSessionId() < 0) {
       return new ExecuteStatementResp(
@@ -256,19 +256,24 @@ public class IServiceHandler implements IService.Iface {
 
       case SELECT_FROM_TABLE:
         System.out.println("[DEBUG] " + plan);
-        SelectPlan selectPlan = ((SelectPlan) plan);
-        QueryResult queryResult =
+        SelectPlan2 selectPlan = ((SelectPlan2) plan);
+        QueryTable2 queryTable =
             manager
                 .getCurrentDatabase()
-                .select(
-                    selectPlan.getQueryTables(),
-                    selectPlan.getMetaInfos(),
-                    selectPlan.getJoinCondition(),
-                    selectPlan.getWhereCondition());
-        Pair<List<String>, List<List<String>>> result = queryResult.makeResult(queryResult);
+                .select(selectPlan.getTableQuerys(), selectPlan.getMultipleCondition());
+        //        QueryResult queryResult =
+        //            manager
+        //                .getCurrentDatabase()
+        //                .select(
+        //                    selectPlan.getQueryTables(),
+        //                    selectPlan.getMetaInfos(),
+        //                    selectPlan.getJoinCondition(),
+        //                    selectPlan.getWhereCondition());
+        QueryResult2 queryResult =
+            QueryResult2.makeResult(queryTable, selectPlan.getResultColumns());
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
-        res.columnsList = result.left;
-        res.rowList = result.right;
+        res.columnsList = queryResult.getResultColumnNames();
+        res.rowList = queryResult.getRowsList();
         return res;
 
       default:
