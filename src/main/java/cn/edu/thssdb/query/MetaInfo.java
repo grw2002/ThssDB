@@ -31,4 +31,13 @@ public class MetaInfo {
     }
     return -1;
   }
+
+  public Column findColumnByName(String name) {
+    for (Column column : columns) {
+      if (column.getName().equals(name)) {
+        return column;
+      }
+    }
+    return null;
+  }
 }
