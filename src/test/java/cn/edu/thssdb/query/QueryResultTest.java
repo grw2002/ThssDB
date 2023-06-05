@@ -150,4 +150,28 @@ public class QueryResultTest {
       }
     }
   }
+
+  //  @Test
+  //  public void testTest() {
+  //    String[] attrs = new String[] {"age", "name"};
+  ////    String sql = "SELECT " + String.join(",", attrs) + " FROM table1;";
+  //    String sql="SELECT table1.id,table1.name,table2.location FROM table1,table2;";
+  //    ExecuteStatementResp res = executeStatementResp(sql);
+  //    System.out.println("[DEBUG] " + res.columnsList + res.rowList);
+  //
+  //    Database db = manager.getCurrentDatabase();
+  //    Table table1 = db.findTableByName("table1");
+  //    assertEquals(res.columnsList.size(), 2);
+  //    assertEquals(String.join("#", res.columnsList), String.join("#", attrs));
+  //    assertEquals(res.rowList.size(), 7);
+  //    for (int i = 0; i < res.rowList.size(); i++) {
+  //      List<String> strings = res.rowList.get(i);
+  //      assertEquals(strings.size(), 2);
+  //      List<Entry> entries = rows1[i].getEntries();
+  //      for (int j = 0; j < strings.size(); j++) {
+  //        assertEquals(
+  //            entries.get(table1.findColumnIndexByName(attrs[j])).toString(), strings.get(j));
+  //      }
+  //    }
+  //  }
 }
