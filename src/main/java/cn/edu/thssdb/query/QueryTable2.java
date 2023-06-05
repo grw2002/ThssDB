@@ -111,6 +111,15 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
     SQLParser.ComparatorContext op = condition.comparator();
     Comparable value1 = evaluateExpression(metaInfo, row, exp1);
     Comparable value2 = evaluateExpression(metaInfo, row, exp2);
+    if (value1 == null && value2 == null) {
+      if (op.EQ() != null) return true;
+      else if (op.NE() != null) return false;
+      else throw new RuntimeException("Invalid operator: " + op.getText());
+    } else if (value1 == null || value2 == null) {
+      if (op.EQ() != null) return false;
+      else if (op.NE() != null) return true;
+      else throw new RuntimeException("Invalid operator: " + op.getText());
+    }
     if (op.EQ() != null) {
       return value1.compareTo(value2) == 0;
     } else if (op.NE() != null) {

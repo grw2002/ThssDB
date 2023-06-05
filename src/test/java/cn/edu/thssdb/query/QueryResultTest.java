@@ -191,7 +191,7 @@ public class QueryResultTest {
   @Test
   public void testWhere() {
     String[] attrs = new String[] {"age", "name"};
-    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE age > 21;";
+    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE (age*5) > 10*(10+5)-45;";
     //    String sql="UPDATE table1 SET age=age+1 WHERE age > 1;";
     ExecuteStatementResp res = executeStatementResp(sql);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
