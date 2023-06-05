@@ -23,6 +23,7 @@ import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,7 +55,7 @@ public class IServiceHandler implements IService.Iface {
 
   @Override
   public DisconnectResp disconnect(DisconnectReq req) throws TException {
-    manager.saveMetaDataToFile("metadata");
+    manager.saveMetaDataToFile("metadata.meta");
     manager.saveTableDataToFile();
 
     return new DisconnectResp(StatusUtil.success());
@@ -97,6 +98,7 @@ public class IServiceHandler implements IService.Iface {
       case SHOW_DB:
         try {
           System.out.println("[DEBUG] " + plan);
+          ShowDatabasesPlan showDatabasesPlan = (ShowDatabasesPlan) plan;
           List<String> databases = manager.showDatabases();
           String currentDbName = manager.getCurrentDatabaseName();
           ExecuteStatementResp showDatabaseResp =
@@ -114,6 +116,21 @@ public class IServiceHandler implements IService.Iface {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
 
+      case SHOW_TABLES:
+        try {
+          System.out.println("[DEBUG] " + plan);
+          ShowTablesPlan showTablesPlan = (ShowTablesPlan) plan;
+          String currentDbName = showTablesPlan.getCurrentDatabase();
+
+          List<String> tables = manager.getTablesName();
+          ExecuteStatementResp showTablesResp =
+              new ExecuteStatementResp(StatusUtil.success(), true);
+          showTablesResp.columnsList = Collections.singletonList("Table");
+          showTablesResp.rowList = tables.stream().map(Arrays::asList).collect(Collectors.toList());
+          return showTablesResp;
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
       case CREATE_TABLE:
         try {
           System.out.println("[DEBUG] " + plan);

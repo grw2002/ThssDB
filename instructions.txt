@@ -9,7 +9,7 @@ DELETE FROM person WHERE name = 'Bob';
 INSERT INTO person VALUES ('Bob', 17)
 INSERT INTO person VALUES ('Carol', 18)
 INSERT INTO person VALUES ('Dava', 19)
-SHOW ROWS person
+SELECT * FROM person
 UPDATE person SET name = 'Carol' WHERE name = 'Bob';
 SELECT ID FROM person WHERE name = 'Bob';
 CREATE TABLE school (student String(256), ID Int not null, PRIMARY KEY(ID))

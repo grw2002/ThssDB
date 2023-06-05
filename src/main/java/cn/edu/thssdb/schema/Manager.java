@@ -162,6 +162,10 @@ public class Manager {
     return new ArrayList<>(databases.keySet());
   }
 
+  public List<String> getTablesName() {
+    return currentDatabase.getTablesName();
+  }
+
   public void createTable(String tableName, List<Column> columns) throws RuntimeException {
     if (currentDatabase == null) {
       throw new RuntimeException("No database selected");
