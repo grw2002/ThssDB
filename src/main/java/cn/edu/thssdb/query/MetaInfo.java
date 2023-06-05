@@ -23,6 +23,7 @@ public class MetaInfo {
     return columns;
   }
 
+  @Deprecated
   public int columnFind(String name) {
     for (int i = 0; i < columns.size(); i++) {
       if (columns.get(i).getName().equals(name)) {
