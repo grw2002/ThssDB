@@ -23,7 +23,7 @@ public abstract class LogicalPlan {
     CREATE_TABLE,
     DROP_TABLE,
     SHOW_TABLE,
-    SHOW_ROWS,
+    SELECT_ALL,
     INSERT_INTO_TABLE,
     DELETE_FROM_TABLE,
     UPDATE_TABLE,
