@@ -8,6 +8,7 @@ import cn.edu.thssdb.utils.Pair;
 
 import java.util.*;
 
+@Deprecated
 public class QueryResult {
 
   public List<MetaInfo> metaInfos;

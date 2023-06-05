@@ -24,6 +24,7 @@ import cn.edu.thssdb.query.QueryTable;
 
 import java.util.List;
 
+@Deprecated
 public class SelectPlan extends LogicalPlan {
 
   List<QueryTable> queryTables;

@@ -65,6 +65,7 @@ public class Database implements Serializable {
     tables.remove(tableName);
   }
 
+  @Deprecated
   public QueryResult select(
       List<QueryTable> queryTables,
       List<MetaInfo> metaInfos,
