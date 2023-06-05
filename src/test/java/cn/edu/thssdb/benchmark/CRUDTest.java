@@ -17,6 +17,7 @@ public class CRUDTest {
   @BeforeClass
   public static void setUp() throws Exception {
     ThssDB.main(null);
+    Thread.sleep(1000);
     CRUDTestExecutor = new CRUDTestExecutor();
   }
 
