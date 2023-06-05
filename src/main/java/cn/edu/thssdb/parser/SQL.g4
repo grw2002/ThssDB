@@ -28,7 +28,7 @@ sqlStmt :
     | useDbStmt
     | showDbStmt
     | showTableStmt
-    | showRowsStmt
+    | selectAllStmt
     | quitStmt
     | updateStmt ;
 
@@ -82,8 +82,8 @@ alterTableStmt:
         )
     ;
 
-showRowsStmt:
-    K_SHOW K_ROWS tableName;
+selectAllStmt:
+    K_SELECT '*' K_FROM tableName;
 
 insertStmt :
     K_INSERT K_INTO tableName ( '(' columnName ( ',' columnName )* ')' )?

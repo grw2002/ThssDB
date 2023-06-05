@@ -197,13 +197,13 @@ public class IServiceHandler implements IService.Iface {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
 
-      case SHOW_ROWS:
+      case SELECT_ALL:
         try {
           System.out.println("[DEBUG] " + plan);
-          ShowRowsPlan showRowsPlan = (ShowRowsPlan) plan;
-          List<String> rows = manager.showRowsInTable(showRowsPlan.getTableName());
+          SelectAllPlan selectAllPlan = (SelectAllPlan) plan;
+          List<String> rows = manager.showRowsInTable(selectAllPlan.getTableName());
           List<Column> tableColumns =
-              manager.getCurrentDatabase().getTableColumns(showRowsPlan.getTableName());
+              manager.getCurrentDatabase().getTableColumns(selectAllPlan.getTableName());
           List<String> columnsList = new ArrayList<>();
 
           for (Column column : tableColumns) {

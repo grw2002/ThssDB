@@ -2,11 +2,11 @@ package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
 
-public class ShowRowsPlan extends LogicalPlan {
+public class SelectAllPlan extends LogicalPlan {
   private String tableName;
 
-  public ShowRowsPlan(String tableName) {
-    super(LogicalPlanType.SHOW_ROWS);
+  public SelectAllPlan(String tableName) {
+    super(LogicalPlanType.SELECT_ALL);
     this.tableName = tableName;
   }
 
@@ -16,6 +16,6 @@ public class ShowRowsPlan extends LogicalPlan {
 
   @Override
   public String toString() {
-    return "ShowRowsPlan{" + "tableName='" + tableName + '\'' + '}';
+    return "SelectAllPlan{" + "tableName='" + tableName + '\'' + '}';
   }
 }
