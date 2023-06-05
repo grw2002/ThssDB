@@ -1,5 +1,6 @@
 package cn.edu.thssdb.query;
 
+import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Entry;
 import cn.edu.thssdb.schema.Row;
@@ -14,6 +15,7 @@ public class QueryResult {
   public List<QueryTable> queryTables;
   public List<Integer> index;
   private List<Cell> attrs;
+  private String joinCondition;
 
   public static Pair<List<String>, List<List<String>>> makeResult(QueryResult queryResult) {
     List<LinkedList<Row>> allRows = queryResult.getMatchRows();
@@ -42,13 +44,14 @@ public class QueryResult {
     return result;
   }
 
-  public QueryResult(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
+  public QueryResult(List<QueryTable> queryTables, List<MetaInfo> metaInfos, String joinCondition) {
     // TODO
     this.metaInfos = metaInfos;
     this.queryTables = queryTables;
     this.index = new ArrayList<>();
     this.attrs = new ArrayList<>();
-    //    this.result = new Pair<>(new ArrayList<>(), new ArrayList<>());
+    this.joinCondition = joinCondition;
+    // this.result = new Pair<>(new ArrayList<>(), new ArrayList<>());
   }
 
   public List<String> getColumnsList() {
@@ -70,7 +73,7 @@ public class QueryResult {
     // Cartesion Product
     List<LinkedList<Row>> oldrows = new LinkedList<>();
     List<LinkedList<Row>> newrows = new LinkedList<>();
-    List<LinkedList<Row>> tmp = null;
+    List<LinkedList<Row>> tmp;
     oldrows.add(new LinkedList<>());
     for (QueryTable queryTable : queryTables) {
       while (queryTable.hasNext()) {
@@ -78,7 +81,52 @@ public class QueryResult {
         for (LinkedList<Row> oldrow : oldrows) {
           LinkedList<Row> newRow = new LinkedList<>(oldrow);
           newRow.add(row);
-          newrows.add(newRow);
+
+          // Check if join condition exists
+          if (joinCondition != null) {
+            // Parse join condition
+            String[] parts = joinCondition.split("=");
+            String[] leftPart = parts[0].split("\\.");
+            String[] rightPart = parts[1].split("\\.");
+
+            String leftTableName = leftPart[0];
+            String leftAttrName = leftPart[1];
+            String rightTableName = rightPart[0];
+            String rightAttrName = rightPart[1];
+
+            // Check join condition
+            boolean joinConditionSatisfied = true;
+            for (MetaInfo metaInfo : metaInfos) {
+              if (metaInfo.getTableName().equals(leftTableName)) {
+                Column column = metaInfo.findColumnByName(leftAttrName);
+                if (column != null) {
+                  int leftIndex = column.getIndex();
+                  Entry leftEntry = row.getEntries().get(leftIndex);
+                  if (metaInfo.getTableName().equals(rightTableName)) {
+                    column = metaInfo.findColumnByName(rightAttrName);
+                    if (column != null) {
+                      int rightIndex = column.getIndex();
+                      Entry rightEntry = row.getEntries().get(rightIndex);
+                      if (!leftEntry.equals(rightEntry)) {
+                        joinConditionSatisfied = false;
+                        break;
+                      }
+                    } else {
+                      throw new ColumnNotExistException(rightAttrName);
+                    }
+                  }
+                } else {
+                  throw new ColumnNotExistException(leftAttrName);
+                }
+              }
+            }
+
+            if (joinConditionSatisfied) {
+              newrows.add(newRow);
+            }
+          } else {
+            newrows.add(newRow);
+          }
         }
       }
       // Swap

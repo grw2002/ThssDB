@@ -83,7 +83,12 @@ public class QueryResultTest {
     System.out.println("[DEBUG] " + plan);
     SelectPlan selectPlan = ((SelectPlan) plan);
     QueryResult queryResult =
-        manager.getCurrentDatabase().select(selectPlan.getQueryTables(), selectPlan.getMetaInfos());
+        manager
+            .getCurrentDatabase()
+            .select(
+                selectPlan.getQueryTables(),
+                selectPlan.getMetaInfos(),
+                selectPlan.getJoinCondition());
     Pair<List<String>, List<List<String>>> result = QueryResult.makeResult(queryResult);
     ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
     res.columnsList = result.left;

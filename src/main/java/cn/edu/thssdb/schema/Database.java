@@ -63,8 +63,9 @@ public class Database implements Serializable {
     tables.remove(tableName);
   }
 
-  public QueryResult select(List<QueryTable> queryTables, List<MetaInfo> metaInfos) {
-    return new QueryResult(queryTables, metaInfos);
+  public QueryResult select(
+      List<QueryTable> queryTables, List<MetaInfo> metaInfos, String joinCondition) {
+    return new QueryResult(queryTables, metaInfos, joinCondition);
   }
 
   private void recover() {

@@ -55,6 +55,9 @@ public class IServiceHandler implements IService.Iface {
 
   @Override
   public DisconnectResp disconnect(DisconnectReq req) throws TException {
+    manager.saveMetaDataToFile("metadata");
+    manager.saveTableDataToFile();
+
     return new DisconnectResp(StatusUtil.success());
   }
 
@@ -257,7 +260,10 @@ public class IServiceHandler implements IService.Iface {
         QueryResult queryResult =
             manager
                 .getCurrentDatabase()
-                .select(selectPlan.getQueryTables(), selectPlan.getMetaInfos());
+                .select(
+                    selectPlan.getQueryTables(),
+                    selectPlan.getMetaInfos(),
+                    selectPlan.getJoinCondition());
         Pair<List<String>, List<List<String>>> result = queryResult.makeResult(queryResult);
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
         res.columnsList = result.left;
