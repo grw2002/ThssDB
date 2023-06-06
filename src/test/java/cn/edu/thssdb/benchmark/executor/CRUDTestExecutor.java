@@ -153,100 +153,93 @@ public class CRUDTestExecutor extends TestExecutor {
     expectedResult = extractData(expectedResult, columnList);
     Assert.assertTrue(equals(queryResult, expectedResult));
 
-    //    // query join on column1
-    //    querySql =
-    //        "select test_table3.column1,test_table3.column2,test_table4.column2 from test_table3
-    // join test_table4 on test_table3.column1 = test_table4.column1;";
-    //    resp = client.executeStatement(querySql);
-    //    tableSchema = dataGenerator.getTableSchema("test_table3");
-    //    resultTypes.clear();
-    //    resultTypes.add(tableSchema.types.get(1));
-    //    resultTypes.add(tableSchema.types.get(2));
-    //    tableSchema = dataGenerator.getTableSchema("test_table4");
-    //    resultTypes.add(tableSchema.types.get(2));
-    //    queryResult = convertData(resp.rowList, resultTypes);
-    //
-    //    Set<List<Object>> leftTableData = dataMap.get("test_table3");
-    //    Set<List<Object>> rightTableData = dataMap.get("test_table4");
-    //
-    //    expectedResult = new HashSet<>();
-    //    for (List<Object> leftRowData : leftTableData) {
-    //      for (List<Object> rightRowData : rightTableData) {
-    //        if (leftRowData.get(1).equals(rightRowData.get(1))) {
-    //          List<Object> resultRowData = new ArrayList<>();
-    //          resultRowData.add(leftRowData.get(1));
-    //          resultRowData.add(leftRowData.get(2));
-    //          resultRowData.add(rightRowData.get(2));
-    //          expectedResult.add(resultRowData);
-    //        }
-    //      }
-    //    }
-    //
-    //    Assert.assertTrue(equals(queryResult, expectedResult));
-    //
-    //    // query join on column1 where column1 = 5;
-    //    querySql =
-    //        "select test_table3.column1,test_table3.column2,test_table4.column2 from test_table3
-    // join test_table4 on test_table3.column1 = test_table4.column1 where test_table3.column1 =
-    // 5;";
-    //    resp = client.executeStatement(querySql);
-    //    tableSchema = dataGenerator.getTableSchema("test_table3");
-    //    resultTypes.clear();
-    //    resultTypes.add(tableSchema.types.get(1));
-    //    resultTypes.add(tableSchema.types.get(2));
-    //    tableSchema = dataGenerator.getTableSchema("test_table4");
-    //    resultTypes.add(tableSchema.types.get(2));
-    //    queryResult = convertData(resp.rowList, resultTypes);
-    //
-    //    leftTableData = dataMap.get("test_table3");
-    //    rightTableData = dataMap.get("test_table4");
-    //
-    //    expectedResult = new HashSet<>();
-    //    for (List<Object> leftRowData : leftTableData) {
-    //      for (List<Object> rightRowData : rightTableData) {
-    //        if (leftRowData.get(1).equals(rightRowData.get(1)) && (long) leftRowData.get(1) == 5)
-    // {
-    //          List<Object> resultRowData = new ArrayList<>();
-    //          resultRowData.add(leftRowData.get(1));
-    //          resultRowData.add(leftRowData.get(2));
-    //          resultRowData.add(rightRowData.get(2));
-    //          expectedResult.add(resultRowData);
-    //        }
-    //      }
-    //    }
-    //
-    //    Assert.assertTrue(equals(queryResult, expectedResult));
-    //    // query join on column1 where column3 = 5;
-    //    querySql =
-    //        "select test_table3.column1,test_table3.column3,test_table4.column2 from test_table3
-    // join test_table4 on test_table3.column1 = test_table4.column1 where test_table3.column3 =
-    // 5;";
-    //    resp = client.executeStatement(querySql);
-    //    tableSchema = dataGenerator.getTableSchema("test_table3");
-    //    resultTypes.clear();
-    //    resultTypes.add(tableSchema.types.get(1));
-    //    resultTypes.add(tableSchema.types.get(3));
-    //    tableSchema = dataGenerator.getTableSchema("test_table4");
-    //    resultTypes.add(tableSchema.types.get(2));
-    //    queryResult = convertData(resp.rowList, resultTypes);
-    //
-    //    leftTableData = dataMap.get("test_table3");
-    //    rightTableData = dataMap.get("test_table4");
-    //
-    //    expectedResult = new HashSet<>();
-    //    for (List<Object> leftRowData : leftTableData) {
-    //      for (List<Object> rightRowData : rightTableData) {
-    //        if (leftRowData.get(1).equals(rightRowData.get(1)) && (double) leftRowData.get(3) ==
-    // 5) {
-    //          List<Object> resultRowData = new ArrayList<>();
-    //          resultRowData.add(leftRowData.get(1));
-    //          resultRowData.add(leftRowData.get(3));
-    //          resultRowData.add(rightRowData.get(2));
-    //          expectedResult.add(resultRowData);
-    //        }
-    //      }
-    //    }
-    //    Assert.assertTrue(equals(queryResult, expectedResult));
+    // query join on column1
+    querySql =
+        "select test_table3.column1,test_table3.column2,test_table4.column2 from test_table3 join test_table4 on test_table3.column1 = test_table4.column1;";
+    resp = client.executeStatement(querySql);
+    tableSchema = dataGenerator.getTableSchema("test_table3");
+    resultTypes.clear();
+    resultTypes.add(tableSchema.types.get(1));
+    resultTypes.add(tableSchema.types.get(2));
+    tableSchema = dataGenerator.getTableSchema("test_table4");
+    resultTypes.add(tableSchema.types.get(2));
+    queryResult = convertData(resp.rowList, resultTypes);
+
+    Set<List<Object>> leftTableData = dataMap.get("test_table3");
+    Set<List<Object>> rightTableData = dataMap.get("test_table4");
+
+    expectedResult = new HashSet<>();
+    for (List<Object> leftRowData : leftTableData) {
+      for (List<Object> rightRowData : rightTableData) {
+        if (leftRowData.get(1).equals(rightRowData.get(1))) {
+          List<Object> resultRowData = new ArrayList<>();
+          resultRowData.add(leftRowData.get(1));
+          resultRowData.add(leftRowData.get(2));
+          resultRowData.add(rightRowData.get(2));
+          expectedResult.add(resultRowData);
+        }
+      }
+    }
+
+    Assert.assertTrue(equals(queryResult, expectedResult));
+
+    // query join on column1 where column1 = 5;
+    querySql =
+        "select test_table3.column1,test_table3.column2,test_table4.column2 from test_table3 join test_table4 on test_table3.column1 = test_table4.column1 where test_table3.column1 = 5;";
+    resp = client.executeStatement(querySql);
+    tableSchema = dataGenerator.getTableSchema("test_table3");
+    resultTypes.clear();
+    resultTypes.add(tableSchema.types.get(1));
+    resultTypes.add(tableSchema.types.get(2));
+    tableSchema = dataGenerator.getTableSchema("test_table4");
+    resultTypes.add(tableSchema.types.get(2));
+    queryResult = convertData(resp.rowList, resultTypes);
+
+    leftTableData = dataMap.get("test_table3");
+    rightTableData = dataMap.get("test_table4");
+
+    expectedResult = new HashSet<>();
+    for (List<Object> leftRowData : leftTableData) {
+      for (List<Object> rightRowData : rightTableData) {
+        if (leftRowData.get(1).equals(rightRowData.get(1)) && (long) leftRowData.get(1) == 5) {
+          List<Object> resultRowData = new ArrayList<>();
+          resultRowData.add(leftRowData.get(1));
+          resultRowData.add(leftRowData.get(2));
+          resultRowData.add(rightRowData.get(2));
+          expectedResult.add(resultRowData);
+        }
+      }
+    }
+
+    Assert.assertTrue(equals(queryResult, expectedResult));
+    // query join on column1 where column3 = 5;
+    querySql =
+        "select test_table3.column1,test_table3.column3,test_table4.column2 from test_table3 join test_table4 on test_table3.column1 = test_table4.column1 where test_table3.column3 = 5;";
+    resp = client.executeStatement(querySql);
+    tableSchema = dataGenerator.getTableSchema("test_table3");
+    resultTypes.clear();
+    resultTypes.add(tableSchema.types.get(1));
+    resultTypes.add(tableSchema.types.get(3));
+    tableSchema = dataGenerator.getTableSchema("test_table4");
+    resultTypes.add(tableSchema.types.get(2));
+    queryResult = convertData(resp.rowList, resultTypes);
+
+    leftTableData = dataMap.get("test_table3");
+    rightTableData = dataMap.get("test_table4");
+
+    expectedResult = new HashSet<>();
+    for (List<Object> leftRowData : leftTableData) {
+      for (List<Object> rightRowData : rightTableData) {
+        if (leftRowData.get(1).equals(rightRowData.get(1)) && (double) leftRowData.get(3) == 5) {
+          List<Object> resultRowData = new ArrayList<>();
+          resultRowData.add(leftRowData.get(1));
+          resultRowData.add(leftRowData.get(3));
+          resultRowData.add(rightRowData.get(2));
+          expectedResult.add(resultRowData);
+        }
+      }
+    }
+    Assert.assertTrue(equals(queryResult, expectedResult));
   }
 
   public void updateAndQueryData() throws TException {

@@ -5,6 +5,7 @@ import cn.edu.thssdb.exception.DataFileErrorException;
 import cn.edu.thssdb.exception.NotNullException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
+import cn.edu.thssdb.query.QueryTable2;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
@@ -18,29 +19,36 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class Table implements Iterable<Row>, Serializable {
+public class Table extends QueryTable2 {
   ReentrantReadWriteLock lock;
   public String databaseName;
-  public String tableName;
-  private ArrayList<Column> columns;
-  public transient BPlusTree<Entry, Row> index;
-  private transient Map<String, Integer> columnIndex;
   private int primaryIndex;
+  private String tableName;
+  public transient BPlusTree<Entry, Row> index;
+
+  public String getTableName() {
+    return tableName;
+  }
 
   public Table(String databaseName, String tableName, Column[] columns) {
     // TODO
+    super(tableName, columns); // 调用父类构造函数
     this.databaseName = databaseName;
     this.tableName = tableName;
-    this.columns = new ArrayList<>(Arrays.asList(columns));
     this.index = new BPlusTree<>();
-    this.columnIndex = new HashMap<>(); // 初始化映射
     for (int i = 0; i < columns.length; i++) {
       if (columns[i].getPrimary() != 0) {
         primaryIndex = i;
       }
       columns[i].setTable(this);
-      columnIndex.put(columns[i].getName(), i); // 在映射中添加新列
     }
+  }
+
+  @Override
+  public void addColumn(Column column) {
+    // TODO
+    super.addColumn(column);
+    column.setTable(this);
   }
 
   /*
@@ -108,23 +116,6 @@ public class Table implements Iterable<Row>, Serializable {
     }
   }
 
-  // util: initTransientFields BPlusTree & Map
-  public void initTransientFields() {
-    this.index = new BPlusTree<>();
-    this.columnIndex = new HashMap<>();
-    for (int i = 0; i < columns.size(); i++) {
-      columnIndex.put(columns.get(i).getName(), i);
-    }
-  }
-
-  // util: update column-index map
-  public void updateColumnIndex() {
-    columnIndex.clear();
-    for (int i = 0; i < columns.size(); i++) {
-      columnIndex.put(columns.get(i).getName(), i);
-    }
-  }
-
   // util: parse string and return entry
   public static Entry entryParse(
       String value, String columnName, ColumnType columnType, boolean notNull) {
@@ -162,29 +153,12 @@ public class Table implements Iterable<Row>, Serializable {
       Row row = (Row) pair.right;
       allRows.add(row.toString());
     }
-
     return allRows;
   }
 
   /*
    utils end
   */
-  public void addColumn(Column column) {
-    this.columns.add(column);
-    column.setTable(this);
-
-    if (this.index.size() > 0) {
-      Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
-      while (iterator.hasNext()) {
-        Pair<Entry, Row> pair = iterator.next();
-        Row row;
-
-        row = pair.right; // 获取第二个元素的值
-        row.addEntry(new Entry(null)); // 增加一个新的Entry
-      }
-    }
-    updateColumnIndex();
-  }
 
   public void dropColumn(String columnName) {
     boolean findFlag = false;
@@ -216,6 +190,13 @@ public class Table implements Iterable<Row>, Serializable {
         }
       }
     }
+  }
+
+  // util: initTransientFields BPlusTree & Map
+  public void initTransientFields() {
+    this.index = new BPlusTree<>();
+    this.columnIndex = new HashMap<>();
+    updateColumnIndex();
   }
 
   public void alterType(String columnName, String newColumnType) {
@@ -287,21 +268,15 @@ public class Table implements Iterable<Row>, Serializable {
     }
   }
 
-  public List<Column> getColumns() {
-    return columns;
-  }
-
   private void recover() {
     // TODO
   }
 
-  public void insert(Row[] rows) {
-    // TODO
-    for (Row row : rows) {
-      Entry primaryKey = row.entries.get(primaryIndex);
-      if (!index.contains(primaryKey)) {
-        index.put(row.entries.get(primaryIndex), row);
-      }
+  @Override
+  public void insert(Row row) {
+    Entry primaryKey = row.entries.get(primaryIndex);
+    if (!index.contains(primaryKey)) {
+      index.put(row.entries.get(primaryIndex), row);
     }
   }
 
@@ -565,28 +540,10 @@ public class Table implements Iterable<Row>, Serializable {
     return null;
   }
 
-  public int findColumnIndexByName(String name) {
-    Column column = findColumnByName(name);
-    if (column != null) {
-      return column.getIndex();
-    }
-    return -1;
-  }
-
-  public Column findColumnByName(String name) {
-    //    System.out.println("find Column By Name:" + name + columns.toString());
-    for (Column column : columns) {
-      if (column.getName().equals(name)) {
-        return column;
-      }
-    }
-    return null;
-  }
-
   private static class TableIterator implements Iterator<Row> {
     private final Iterator<Pair<Entry, Row>> iterator;
 
-    TableIterator(Table table) {
+    public TableIterator(Table table) {
       this.iterator = table.index.iterator();
     }
 

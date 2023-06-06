@@ -18,19 +18,12 @@
  */
 package cn.edu.thssdb.parser;
 
-import cn.edu.thssdb.exception.ColumnNotExistException;
-import cn.edu.thssdb.exception.DatabaseNotExistException;
-import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
-import cn.edu.thssdb.query.MetaInfo;
-import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
-import cn.edu.thssdb.schema.Table;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
@@ -337,101 +330,9 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return new UpdatePlan(tableName, columnName, newValue, conditions);
   }
 
-  public LogicalPlan visitSelectStmt2(SQLParser.SelectStmtContext ctx) {
-    return new SelectPlan(new ArrayList<>(), new ArrayList<>(), "", "");
-  }
-
   @Override
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) throws RuntimeException {
-    List<MetaInfo> metaInfos = new ArrayList<>();
-    List<Table> tables = new ArrayList<>();
-    List<QueryTable> queryTables = new ArrayList<>();
-    String joinCondition = null;
-    String whereCondition = null;
-
-    Database currentDB = manager.getCurrentDatabase();
-    if (currentDB == null) {
-      throw new DatabaseNotExistException();
-    }
-
-    for (SQLParser.TableQueryContext tableQueryContext : ctx.tableQuery()) {
-      String tableName = tableQueryContext.tableName(0).getText();
-      Table table = currentDB.findTableByName(tableName);
-      if (table == null) {
-        throw new TableNotExistException(tableName);
-      }
-      queryTables.add(new QueryTable(table));
-      tables.add(table);
-      metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
-
-      // Check for JOIN operation
-      if (tableQueryContext.tableName(1) != null) {
-        // Add tableName for JOIN
-        tableName = tableQueryContext.tableName(1).getText();
-        table = currentDB.findTableByName(tableName);
-        if (table == null) {
-          throw new TableNotExistException(tableName);
-        }
-        queryTables.add(new QueryTable(table));
-        tables.add(table);
-        metaInfos.add(new MetaInfo(tableName, new ArrayList<>()));
-
-        // Get JOIN condition
-        List<String> joinConditions = new ArrayList<>();
-        traverseConditionTree(tableQueryContext.multipleCondition(), joinConditions);
-        joinCondition = String.join("", joinConditions);
-      }
-    }
-
-    for (SQLParser.ResultColumnContext resultColumnContext : ctx.resultColumn()) {
-      SQLParser.ColumnFullNameContext columnFullNameContext = resultColumnContext.columnFullName();
-      if (resultColumnContext.MUL() != null) { // Check for the '*' symbol
-        for (MetaInfo metaInfo : metaInfos) {
-          Table table = currentDB.findTableByName(metaInfo.getTableName());
-          if (table == null) {
-            throw new TableNotExistException(metaInfo.getTableName());
-          }
-          metaInfo.getColumns().addAll(table.getColumns());
-        }
-        continue;
-      }
-      String columnName = columnFullNameContext.columnName().getText();
-      if (columnFullNameContext.tableName() == null) {
-        for (int i = 0; i < tables.size(); i++) {
-          Table tableIter = tables.get(i);
-          Column column = tableIter.findColumnByName(columnName);
-          if (column == null) {
-            continue;
-          }
-          metaInfos.get(i).getColumns().add(column);
-          break;
-        }
-      } else {
-        String tableSpecifiedName = columnFullNameContext.tableName().getText();
-        for (int i = 0; i < tables.size(); i++) {
-          Table tableIter = tables.get(i);
-          if (tableIter.tableName.equals(tableSpecifiedName)) {
-            Column column = tableIter.findColumnByName(columnName);
-            if (column == null) {
-              throw new ColumnNotExistException(columnName);
-            }
-            metaInfos.get(i).getColumns().add(column);
-            break;
-          }
-        }
-      }
-    }
-
-    if (ctx.K_WHERE() != null) {
-      List<String> whereConditions = new ArrayList<>();
-      traverseConditionTree(ctx.multipleCondition(), whereConditions);
-      whereCondition = String.join("", whereConditions);
-    }
-
-    // Construct SelectPlan
-    SelectPlan selectPlan = new SelectPlan(queryTables, metaInfos, joinCondition, whereCondition);
-
-    return selectPlan;
+    return new SelectPlan2(ctx.resultColumn(), ctx.tableQuery(), ctx.multipleCondition());
   }
 
   // TODO: parser to more logical plan

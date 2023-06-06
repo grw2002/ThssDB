@@ -3,12 +3,11 @@ package cn.edu.thssdb.query;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.plan.impl.SelectPlan;
+import cn.edu.thssdb.plan.impl.SelectPlan2;
 import cn.edu.thssdb.plan.impl.UpdatePlan;
 import cn.edu.thssdb.rpc.thrift.ExecuteStatementResp;
 import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.type.ColumnType;
-import cn.edu.thssdb.utils.Pair;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,22 +94,41 @@ public class QueryResultTest {
         return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
       }
     }
-    assertEquals(plan.getType(), LogicalPlan.LogicalPlanType.SELECT_FROM_TABLE);
     System.out.println("[DEBUG] " + plan);
-    SelectPlan selectPlan = ((SelectPlan) plan);
-    QueryResult queryResult =
+    SelectPlan2 selectPlan = ((SelectPlan2) plan);
+    QueryTable2 queryTable =
         manager
             .getCurrentDatabase()
-            .select(
-                selectPlan.getQueryTables(),
-                selectPlan.getMetaInfos(),
-                selectPlan.getJoinCondition(),
-                selectPlan.getWhereCondition());
-    Pair<List<String>, List<List<String>>> result = QueryResult.makeResult(queryResult);
+            .select(selectPlan.getTableQuerys(), selectPlan.getMultipleCondition());
+    //        QueryResult queryResult =
+    //            manager
+    //                .getCurrentDatabase()
+    //                .select(
+    //                    selectPlan.getQueryTables(),
+    //                    selectPlan.getMetaInfos(),
+    //                    selectPlan.getJoinCondition(),
+    //                    selectPlan.getWhereCondition());
+    QueryResult2 queryResult = QueryResult2.makeResult(queryTable, selectPlan.getResultColumns());
     ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
-    res.columnsList = result.left;
-    res.rowList = result.right;
+    res.columnsList = queryResult.getResultColumnNames();
+    res.rowList = queryResult.getRowsList();
     return res;
+    //    assertEquals(plan.getType(), LogicalPlan.LogicalPlanType.SELECT_FROM_TABLE);
+    //    System.out.println("[DEBUG] " + plan);
+    //    SelectPlan selectPlan = ((SelectPlan) plan);
+    //    QueryResult queryResult =
+    //        manager
+    //            .getCurrentDatabase()
+    //            .select(
+    //                selectPlan.getQueryTables(),
+    //                selectPlan.getMetaInfos(),
+    //                selectPlan.getJoinCondition(),
+    //                selectPlan.getWhereCondition());
+    //    Pair<List<String>, List<List<String>>> result = QueryResult.makeResult(queryResult);
+    //    ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
+    //    res.columnsList = result.left;
+    //    res.rowList = result.right;
+    //    return res;
   }
 
   @Test
@@ -151,11 +169,13 @@ public class QueryResultTest {
     assertEquals(res.rowList.size(), 35);
     for (int j = 0; j < rows2.length; j++) {
       for (int i = 0; i < rows1.length; i++) {
+        //        System.out.println("(i,j) = (" + i + "," + j + ")");
         List<String> strings = res.rowList.get(j * rows1.length + i);
         assertEquals(strings.size(), 7);
         List<Entry> entries1 = rows1[i].getEntries();
         List<Entry> entries2 = rows2[j].getEntries();
         for (int k = 0; k < strings.size(); k++) {
+          //          System.out.println("k = " + k+" "+table1.findColumnIndexByName(attrs[k]));
           if (k < 5) {
             assertEquals(
                 entries1.get(table1.findColumnIndexByName(attrs[k])).toString(), strings.get(k));
@@ -171,7 +191,7 @@ public class QueryResultTest {
   @Test
   public void testWhere() {
     String[] attrs = new String[] {"age", "name"};
-    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE age > 21;";
+    String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE (age*5) > 10*(10+5)-45;";
     //    String sql="UPDATE table1 SET age=age+1 WHERE age > 1;";
     ExecuteStatementResp res = executeStatementResp(sql);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);

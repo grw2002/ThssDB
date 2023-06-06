@@ -1,9 +1,11 @@
 package cn.edu.thssdb.benchmark;
 
 import cn.edu.thssdb.benchmark.executor.PerformanceTestExecutor;
+import cn.edu.thssdb.server.ThssDB;
 import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +16,8 @@ public class PerformanceTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
+    ThssDB.main(null);
+    Thread.sleep(1000);
     performanceTestExecutor = new PerformanceTestExecutor();
   }
 
@@ -22,7 +26,7 @@ public class PerformanceTest {
     performanceTestExecutor.close();
   }
 
-  //  @Test
+  @Test
   public void simpleTest() throws TException {
     // create database
     LOGGER.info("======================== Performance test  ======================== ");

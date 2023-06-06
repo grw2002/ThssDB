@@ -7,6 +7,7 @@ import cn.edu.thssdb.utils.Pair;
 
 import java.util.Iterator;
 
+@Deprecated
 public class QueryTable implements Iterator<Row> {
 
   Table table;
