@@ -73,6 +73,9 @@ public class Table extends QueryTable2 {
 
   // util: load index from file
   public void loadTableDataFromFile() {
+    if (index.size() != 0) {
+      return;
+    }
     String fileName = this.tableName + ".data";
     Path loadPath = Paths.get(fileName);
 
