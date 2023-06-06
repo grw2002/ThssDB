@@ -20,7 +20,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
     return queryName;
   }
 
-  public QueryTable2(String queryName, Column[] columns) {
+  public QueryTable2(String queryName, List<Column> columns) {
     super(columns);
     for (Column column : columns) {
       column.setQueryTable(this);
@@ -159,7 +159,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
       QueryTable2 queryTable, SQLParser.MultipleConditionContext conditions) {
     Iterator iter = queryTable.iterator();
     QueryTable2 newQueryTable =
-        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns().toArray(new Column[0]));
+        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
     while (iter.hasNext()) {
       Row row = (Row) iter.next();
       if (isConditionSatisfied(queryTable, row, conditions)) {
@@ -173,7 +173,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
       QueryTable2 queryTable, SQLParser.ConditionContext condition) {
     Iterator iter = queryTable.iterator();
     QueryTable2 newQueryTable =
-        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns().toArray(new Column[0]));
+        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
     while (iter.hasNext()) {
       Row row = (Row) iter.next();
       if (isConditionSatisfied(queryTable, row, condition)) {
@@ -181,6 +181,12 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
       }
     }
     return newQueryTable;
+  }
+
+  public static QueryTable2 joinQueryTables(
+      List<QueryTable2> querytables, SQLParser.ConditionContext condition) {
+    QueryTable2 newQueryTable = joinQueryTables(querytables);
+    return filterCondition(newQueryTable, condition);
   }
 
   public static QueryTable2 joinQueryTables(
@@ -197,9 +203,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
     List<Row> tmp;
     oldrows.add(new Row());
     for (QueryTable2 querytable : querytables) {
-      for (Column column : querytable.getColumns()) {
-        columns.add(column.clone());
-      }
+      columns.addAll(querytable.getColumns());
       tableNames.add(querytable.getQueryName());
       for (Row currentRow : querytable) {
         for (Row oldrow : oldrows) {
@@ -215,7 +219,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
       newrows.clear();
     }
     QueryTable2 newQueryTable =
-        new QueryTable2(String.join(" joins ", tableNames), columns.toArray(new Column[0]));
+        new QueryTable2(String.join(" joins ", tableNames), columns);
     newQueryTable.insert(oldrows.toArray(new Row[0]));
     return newQueryTable;
   }

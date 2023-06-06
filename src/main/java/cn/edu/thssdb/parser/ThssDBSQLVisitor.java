@@ -27,6 +27,7 @@ import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
+import cn.edu.thssdb.utils.Global;
 
 import java.util.*;
 
@@ -233,7 +234,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         column = parseColumnDef(ctx.columnDef());
 
         // 检查是否存在 NOT NULL 以及 PRIMARY 约束
-        if (column.getNotNull() || column.getPrimary() != 0) {
+        if (column.isNotNull() || column.getPrimary() != 0) {
           throw new UnsupportedOperationException(
               "Adding a column with NOT NULL constraint is not allowed if the table is not empty.");
         }
@@ -332,6 +333,29 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   @Override
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) throws RuntimeException {
+    if (Global.simpleMode) {
+      SQLParser.TableQueryContext tableQueryContext = ctx.tableQuery(0);
+      SQLParser.ConditionContext whereCondition = null;
+      if (ctx.multipleCondition() != null) {
+        whereCondition = ctx.multipleCondition().condition();
+      }
+      if (tableQueryContext.K_JOIN().size() > 0) {
+
+        return new SimpleJoinPlan(
+            ctx.resultColumn(),
+            tableQueryContext.tableName(0).getText(),
+            tableQueryContext.tableName(1).getText(),
+            tableQueryContext.multipleCondition().condition(),
+            whereCondition
+        );
+      } else {
+        return new SimpleSinglePlan(
+            ctx.resultColumn(),
+            tableQueryContext.tableName(0).getText(),
+            whereCondition
+        );
+      }
+    }
     return new SelectPlan2(ctx.resultColumn(), ctx.tableQuery(), ctx.multipleCondition());
   }
 

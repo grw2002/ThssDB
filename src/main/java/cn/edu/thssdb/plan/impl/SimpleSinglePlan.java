@@ -23,34 +23,35 @@ import cn.edu.thssdb.sql.SQLParser;
 
 import java.util.List;
 
-public class SelectPlan2 extends LogicalPlan {
+public class SimpleSinglePlan extends LogicalPlan {
 
-  List<SQLParser.ResultColumnContext> resultColumns;
+  private List<SQLParser.ResultColumnContext> resultColumns;
 
-  List<SQLParser.TableQueryContext> tableQuerys;
+  private String tableName;
 
-  SQLParser.MultipleConditionContext conditions;
+  private SQLParser.ConditionContext condition;
 
   public List<SQLParser.ResultColumnContext> getResultColumns() {
     return resultColumns;
   }
 
-  public List<SQLParser.TableQueryContext> getTableQuerys() {
-    return tableQuerys;
+  public String getTableName() {
+    return tableName;
   }
 
-  public SQLParser.MultipleConditionContext getMultipleCondition() {
-    return conditions;
+  public SQLParser.ConditionContext getCondition() {
+    return condition;
   }
 
-  public SelectPlan2(
+  public SimpleSinglePlan(
       List<SQLParser.ResultColumnContext> resultColumnContext,
-      List<SQLParser.TableQueryContext> tableQueryContext,
-      SQLParser.MultipleConditionContext multipleConditionContext) {
-    super(LogicalPlanType.SELECT_FROM_TABLE);
+      String tableName,
+      SQLParser.ConditionContext conditionContext
+  ) {
+    super(LogicalPlanType.SIMPLE_SELECT_SINGLE_TABLE);
     this.resultColumns = resultColumnContext;
-    this.tableQuerys = tableQueryContext;
-    this.conditions = multipleConditionContext;
+    this.tableName = tableName;
+    this.condition = conditionContext;
   }
 
   @Override
@@ -59,11 +60,8 @@ public class SelectPlan2 extends LogicalPlan {
     for (SQLParser.ResultColumnContext resultColumn : resultColumns) {
       res.append(resultColumn.getText());
     }
-    res.append("\nTableQuery:");
-    for (SQLParser.TableQueryContext tableQuery : tableQuerys) {
-      res.append(tableQuery.getText());
-    }
-    res.append("\nMultipleCondition:").append(conditions == null ? "" : conditions.getText());
+    res.append("\nTableQuery:" + tableName);
+    res.append("\nMultipleCondition:").append(condition == null ? "" : condition.getText());
     return "SelectPlan{\n" + res.toString() + "\n}";
   }
 }

@@ -5,5 +5,5 @@ public enum ColumnType {
   LONG,
   FLOAT,
   DOUBLE,
-  STRING
+  STRING,
 }

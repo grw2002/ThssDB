@@ -28,6 +28,8 @@ public abstract class LogicalPlan {
     DELETE_FROM_TABLE,
     UPDATE_TABLE,
     SELECT_FROM_TABLE,
+    SIMPLE_SELECT_SINGLE_TABLE,
+    SIMPLE_SELECT_JOIN_TABLE,
     ALTER_TABLE
   }
 }

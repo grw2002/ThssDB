@@ -55,7 +55,7 @@ public class QueryResult2 {
         resultColumnIndex.add(column.getIndex());
       }
     }
-    QueryTable2 resultTable = new QueryTable2("result", columns.toArray(new Column[0]));
+    QueryTable2 resultTable = new QueryTable2("result", columns);
     for (Row row : queryTable2) {
       Row newRow = new Row();
       for (Integer columnIndex : resultColumnIndex) {

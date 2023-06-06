@@ -32,8 +32,8 @@ public class Manager {
 
   public void saveMetaDataToFile(String filePath) {
     try (FileOutputStream fos = new FileOutputStream(filePath);
-        GZIPOutputStream gos = new GZIPOutputStream(fos);
-        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
+         GZIPOutputStream gos = new GZIPOutputStream(fos);
+         ObjectOutputStream oos = new ObjectOutputStream(gos)) {
 
       oos.writeObject(this.databases);
     } catch (IOException e) {
@@ -53,8 +53,8 @@ public class Manager {
       return; // 如果发生异常，直接返回
     }
     try (FileInputStream fis = new FileInputStream(filePath);
-        GZIPInputStream gis = new GZIPInputStream(fis);
-        ObjectInputStream ois = new ObjectInputStream(gis)) {
+         GZIPInputStream gis = new GZIPInputStream(fis);
+         ObjectInputStream ois = new ObjectInputStream(gis)) {
 
       Object fileContent = ois.readObject();
       if (fileContent != null) {
@@ -171,8 +171,7 @@ public class Manager {
       throw new RuntimeException("No database selected");
     }
 
-    Column[] columnArray = columns.toArray(new Column[columns.size()]);
-    currentDatabase.create(tableName, columnArray);
+    currentDatabase.create(tableName, columns);
   }
 
   public void dropTable(String tableName, boolean ifExists) {
@@ -282,6 +281,7 @@ public class Manager {
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
-    private ManagerHolder() {}
+    private ManagerHolder() {
+    }
   }
 }

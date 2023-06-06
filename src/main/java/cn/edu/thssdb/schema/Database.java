@@ -2,10 +2,7 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.TableExistsException;
 import cn.edu.thssdb.exception.TableNotExistException;
-import cn.edu.thssdb.query.MetaInfo;
-import cn.edu.thssdb.query.QueryResult;
-import cn.edu.thssdb.query.QueryTable;
-import cn.edu.thssdb.query.QueryTable2;
+import cn.edu.thssdb.query.*;
 import cn.edu.thssdb.sql.SQLParser;
 
 import java.io.Serializable;
@@ -54,7 +51,7 @@ public class Database implements Serializable {
     // TODO
   }
 
-  public void create(String tableName, Column[] columns) throws RuntimeException {
+  public void create(String tableName, List<Column> columns) throws RuntimeException {
     if (tables.containsKey(tableName)) {
       throw new TableExistsException();
     }
@@ -104,6 +101,51 @@ public class Database implements Serializable {
       return QueryTable2.joinQueryTables(queryTables);
     } else {
       return QueryTable2.joinQueryTables(queryTables, whereConditions);
+    }
+  }
+
+  /**
+   * @param whereCondition must be primary key
+   */
+  public QueryTable2 selectSimpleSingle(String tableName, SQLParser.ConditionContext whereCondition) {
+    Table table = findTableByName(tableName);
+    if (table == null) {
+      throw new TableNotExistException(tableName);
+    }
+    if (whereCondition == null) {
+      return table;
+    } else {
+      String lValue = whereCondition.expression(0).getText();
+      Column column = table.findColumnByName(lValue);
+      if (column == null) {
+        throw new RuntimeException("Column " + lValue + " does not exist");
+      }
+      if (column.isPrimary()) {
+        SQLParser.LiteralValueContext rValue = whereCondition.expression(1).comparer().literalValue();
+        SQLParser.ComparatorContext op = whereCondition.comparator();
+        Entry value = Table.entryParse(rValue, column);
+        if (rValue.K_NULL() != null) {
+          // TODO: handle NULL
+        }
+        if (op.EQ() != null) {
+          // TODO
+        } else if (op.NE() != null) {
+          // TODO
+        } else if (op.GT() != null) {
+          // TODO
+        } else if (op.LT() != null) {
+          // TODO
+        } else if (op.GE() != null) {
+          // TODO
+        } else if (op.LE() != null) {
+          // TODO
+        } else {
+          throw new RuntimeException("Invalid operator: " + op.getText());
+        }
+        return QueryTable2.joinQueryTables(Collections.singletonList(table), whereCondition);
+      } else {
+        return QueryTable2.joinQueryTables(Collections.singletonList(table), whereCondition);
+      }
     }
   }
 

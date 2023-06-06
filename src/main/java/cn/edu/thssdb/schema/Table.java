@@ -3,9 +3,11 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.exception.DataFileErrorException;
 import cn.edu.thssdb.exception.NotNullException;
+import cn.edu.thssdb.exception.TypeNotMatchException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.query.QueryTable2;
+import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
@@ -23,24 +25,24 @@ public class Table extends QueryTable2 {
   ReentrantReadWriteLock lock;
   public String databaseName;
   private int primaryIndex;
-  private String tableName;
+  private final String tableName;
   public transient BPlusTree<Entry, Row> index;
 
   public String getTableName() {
     return tableName;
   }
 
-  public Table(String databaseName, String tableName, Column[] columns) {
+  public Table(String databaseName, String tableName, List<Column> columns) {
     // TODO
     super(tableName, columns); // 调用父类构造函数
     this.databaseName = databaseName;
     this.tableName = tableName;
     this.index = new BPlusTree<>();
-    for (int i = 0; i < columns.length; i++) {
-      if (columns[i].getPrimary() != 0) {
+    for (int i = 0; i < columns.size(); i++) {
+      if (columns.get(i).isPrimary()) {
         primaryIndex = i;
       }
-      columns[i].setTable(this);
+      columns.get(i).setTable(this);
     }
   }
 
@@ -60,8 +62,8 @@ public class Table extends QueryTable2 {
     String fileName = this.tableName + ".data";
 
     try (FileOutputStream fos = new FileOutputStream(fileName);
-        GZIPOutputStream gos = new GZIPOutputStream(fos);
-        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
+         GZIPOutputStream gos = new GZIPOutputStream(fos);
+         ObjectOutputStream oos = new ObjectOutputStream(gos)) {
 
       oos.writeObject(this.index);
 
@@ -95,8 +97,8 @@ public class Table extends QueryTable2 {
     }
 
     try (FileInputStream fis = new FileInputStream(fileName);
-        GZIPInputStream gis = new GZIPInputStream(fis);
-        ObjectInputStream ois = new ObjectInputStream(gis)) {
+         GZIPInputStream gis = new GZIPInputStream(fis);
+         ObjectInputStream ois = new ObjectInputStream(gis)) {
 
       Object fileContent = ois.readObject();
       if (fileContent != null) {
@@ -140,6 +142,46 @@ public class Table extends QueryTable2 {
         return new Entry(value);
       default:
         return null;
+    }
+  }
+
+  public static Entry entryParse(
+      SQLParser.LiteralValueContext literal, Column column) {
+    boolean notNull = column.isNotNull();
+    if (literal.K_NULL() != null) {
+      if (notNull) throw new NotNullException(column.getName());
+      return new Entry(null);
+    }
+
+    switch (column.getType()) {
+      case INT:
+      case LONG:
+      case FLOAT:
+      case DOUBLE:
+        if (literal.NUMERIC_LITERAL() != null) {
+          throw new TypeNotMatchException(column.getName());
+        }
+        break;
+      case STRING:
+        if (literal.STRING_LITERAL() == null) {
+          throw new TypeNotMatchException(column.getName());
+        }
+        break;
+    }
+    String value = literal.getText();
+    switch (column.getType()) {
+      case INT:
+        return new Entry(Integer.valueOf(value));
+      case LONG:
+        return new Entry(Long.valueOf(value));
+      case FLOAT:
+        return new Entry(Float.valueOf(value));
+      case DOUBLE:
+        return new Entry(Double.valueOf(value));
+      case STRING:
+        return new Entry(value.substring(1, value.length() - 1));
+      default:
+        throw new RuntimeException("Unknown column type.");
     }
   }
 
@@ -207,7 +249,7 @@ public class Table extends QueryTable2 {
     for (Column column : columns) {
       if (column.getName().equals(columnName)) {
         column.setType(newColumnType);
-        notNull = column.getNotNull();
+        notNull = column.isNotNull();
         columnIndex++;
         findFlag = true;
         break;
@@ -310,8 +352,8 @@ public class Table extends QueryTable2 {
                       valueList.get(valueIndex),
                       column.getName(),
                       column.getType(),
-                      column.getNotNull()));
-          if (column.getPrimary() == 1) {
+                      column.isNotNull()));
+          if (column.isPrimary()) {
             Entry primaryKey = entries[i];
             // 检查主键是否已经存在
             if (index.contains(primaryKey)) {
@@ -321,7 +363,7 @@ public class Table extends QueryTable2 {
           valueIndex++;
         } else {
           // The column is not specified, use a default value
-          if (findColumnByName(columnName).getNotNull()) {
+          if (findColumnByName(columnName).isNotNull()) {
             throw new RuntimeException("Field '" + columnName + "' cannot be null");
           }
           switch (column.getType()) {
@@ -347,7 +389,7 @@ public class Table extends QueryTable2 {
       }
 
       Row row = new Row(entries);
-      insert(new Row[] {row});
+      insert(new Row[]{row});
     }
   }
 
@@ -381,7 +423,7 @@ public class Table extends QueryTable2 {
 
       // Check if the condition is satisfied for this row
       switch (operator) {
-          // '=', '<>', '<', '>', '<=', '>='
+        // '=', '<>', '<', '>', '<=', '>='
         case "=":
           if (columnValue.equals(value)) {
             toDelete.add(pair.left);

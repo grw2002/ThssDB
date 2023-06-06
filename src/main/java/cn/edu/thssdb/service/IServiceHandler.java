@@ -164,8 +164,8 @@ public class IServiceHandler implements IService.Iface {
                           Arrays.asList(
                               column.getName(),
                               column.getType().toString(),
-                              (column.getPrimary() != 0) ? "PRIMARY KEY" : "NOT PRIMARY",
-                              (column.getNotNull()) ? "NOT NULL" : "CAN NULL",
+                              (column.isPrimary()) ? "PRIMARY KEY" : "NOT PRIMARY",
+                              (column.isNotNull()) ? "NOT NULL" : "CAN NULL",
                               (column.getType() == ColumnType.STRING)
                                   ? String.valueOf(column.getMaxLength())
                                   : "None"))
@@ -249,7 +249,14 @@ public class IServiceHandler implements IService.Iface {
         } catch (Exception e) {
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
-
+      case SIMPLE_SELECT_SINGLE_TABLE:
+        SimpleSinglePlan simpleSinglePlan = (SimpleSinglePlan) plan;
+        QueryTable2 queryTable2 =
+            manager
+                .getCurrentDatabase()
+                .selectSimpleSingle(simpleSinglePlan.getTableName(), simpleSinglePlan.getCondition());
+      case SIMPLE_SELECT_JOIN_TABLE:
+        SimpleJoinPlan simpleJoinPlan = (SimpleJoinPlan) plan;
       case SELECT_FROM_TABLE:
         System.out.println("[DEBUG] " + plan);
         SelectPlan2 selectPlan = ((SelectPlan2) plan);
@@ -257,14 +264,6 @@ public class IServiceHandler implements IService.Iface {
             manager
                 .getCurrentDatabase()
                 .select(selectPlan.getTableQuerys(), selectPlan.getMultipleCondition());
-        //        QueryResult queryResult =
-        //            manager
-        //                .getCurrentDatabase()
-        //                .select(
-        //                    selectPlan.getQueryTables(),
-        //                    selectPlan.getMetaInfos(),
-        //                    selectPlan.getJoinCondition(),
-        //                    selectPlan.getWhereCondition());
         QueryResult2 queryResult =
             QueryResult2.makeResult(queryTable, selectPlan.getResultColumns());
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
