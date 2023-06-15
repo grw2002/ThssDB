@@ -8,6 +8,7 @@ import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.query.QueryTable2;
 import cn.edu.thssdb.sql.SQLParser;
+import cn.edu.thssdb.storage.PageRow;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
@@ -28,7 +29,7 @@ public class Table extends QueryTable2 implements Serializable {
   private int primaryIndex;
   private final String tableName;
   // Pair<pageId, offset>
-  public transient BPlusTree<Entry, Row> index;
+  public transient BPlusTree<Entry, PageRow> index;
 
   public String getTableName() {
     return tableName;
@@ -107,7 +108,7 @@ public class Table extends QueryTable2 implements Serializable {
       Object fileContent = ois.readObject();
       if (fileContent != null) {
         if (fileContent instanceof BPlusTree) {
-          this.index = (BPlusTree<Entry, Row>) fileContent;
+          this.index = (BPlusTree<Entry, PageRow>) fileContent;
           this.index.setDatabaseAndTableName(databaseName, tableName);
           System.out.println("loading...");
         } else {
@@ -193,9 +194,9 @@ public class Table extends QueryTable2 implements Serializable {
   public List<String> getAllRowsInfo() {
     List<String> allRows = new ArrayList<>();
 
-    BPlusTreeIterator<Entry, Row> iter = index.iterator();
+    BPlusTreeIterator<Entry, PageRow> iter = index.iterator();
     while (iter.hasNext()) {
-      Pair<Entry, Row> pair = iter.next();
+      Pair<Entry, PageRow> pair = iter.next();
       Row row = (Row) pair.right;
       allRows.add(row.toString());
     }
@@ -227,10 +228,10 @@ public class Table extends QueryTable2 implements Serializable {
     } else {
       if (this.index.size() > 0) {
         Row row;
-        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+        Iterator<Pair<Entry, PageRow>> iterator = this.index.iterator();
 
         while (iterator.hasNext()) {
-          Pair<Entry, Row> pair = iterator.next();
+          Pair<Entry, PageRow> pair = iterator.next();
           row = pair.right;
           row.dropEntry(columnIndex); // 增加一个新的Entry
         }
@@ -265,13 +266,13 @@ public class Table extends QueryTable2 implements Serializable {
     } else {
       if (this.index.size() > 0) {
         Row row;
-        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+        Iterator<Pair<Entry, PageRow>> iterator = this.index.iterator();
         Entry oldEntry;
         Entry newEntry;
         boolean ifError = false;
 
         while (iterator.hasNext()) {
-          Pair<Entry, Row> pair = iterator.next();
+          Pair<Entry, PageRow> pair = iterator.next();
           row = pair.right;
           oldEntry = row.getEntries().get(columnIndex);
           try {
@@ -322,7 +323,7 @@ public class Table extends QueryTable2 implements Serializable {
   public void insert(Row row) {
     Entry primaryKey = row.getEntries().get(primaryIndex);
     if (!index.contains(primaryKey)) {
-      index.put(row.getEntries().get(primaryIndex), row);
+      index.put(row.getEntries().get(primaryIndex), new PageRow(row));
     }
   }
 
@@ -392,7 +393,7 @@ public class Table extends QueryTable2 implements Serializable {
         }
       }
 
-      Row row = new MemRow(entries);
+      Row row = new Row(entries);
       insert(new Row[] {row});
     }
   }
@@ -414,9 +415,9 @@ public class Table extends QueryTable2 implements Serializable {
     List<Entry> toDelete = new ArrayList<>();
 
     // Iterate over all rows
-    BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+    BPlusTreeIterator<Entry, PageRow> iterator = index.iterator();
     while (iterator.hasNext()) {
-      Pair<Entry, Row> pair = iterator.next();
+      Pair<Entry, PageRow> pair = iterator.next();
       Row row = pair.right;
 
       // Get the value in the column for this row
@@ -519,9 +520,9 @@ public class Table extends QueryTable2 implements Serializable {
       }
 
       // Iterate over all rows
-      BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+      BPlusTreeIterator<Entry, PageRow> iterator = index.iterator();
       while (iterator.hasNext()) {
-        Pair<Entry, Row> pair = iterator.next();
+        Pair<Entry, PageRow> pair = iterator.next();
         Row row = pair.right;
 
         // Get the value in the column for this row
@@ -587,7 +588,7 @@ public class Table extends QueryTable2 implements Serializable {
   }
 
   private class TableIterator implements Iterator<Row> {
-    private final Iterator<Pair<Entry, Row>> iterator;
+    private final Iterator<Pair<Entry, PageRow>> iterator;
 
     public TableIterator(Table table) {
       this.iterator = table.index.iterator();

@@ -4,18 +4,21 @@ import cn.edu.thssdb.schema.Entry;
 import cn.edu.thssdb.schema.Row;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class PageRow extends Row {
-  private Entry[] entries;
 
   public PageRow() {
     super();
   }
 
   public PageRow(Entry[] entries) {
-    super();
-    this.entries = entries;
+    super(entries);
+  }
+
+  public PageRow(Row row) {
+    super(row.getEntries().toArray(new Entry[0]));
   }
 
   @Override
@@ -49,7 +52,7 @@ public class PageRow extends Row {
   }
 
   @Override
-  public ArrayList<Entry> getEntries() {
-    return new ArrayList<Entry>(Arrays.asList(entries));
+  public final List<Entry> getEntries() {
+    return Collections.unmodifiableList(entries);
   }
 }

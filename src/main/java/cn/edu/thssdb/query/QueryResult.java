@@ -215,7 +215,7 @@ public class QueryResult {
     for (Row row : rows) {
       entries.addAll(row.getEntries());
     }
-    return new MemRow(entries.toArray(new Entry[entries.size()]));
+    return new Row(entries.toArray(new Entry[entries.size()]));
   }
 
   // choose columns that metainfo contains
@@ -244,7 +244,7 @@ public class QueryResult {
                   + entries.toString());
           newEntries[i] = entries.get(column.getIndex());
         }
-        newRows.add(new MemRow(newEntries));
+        newRows.add(new Row(newEntries));
       }
       result.add(newRows);
     }

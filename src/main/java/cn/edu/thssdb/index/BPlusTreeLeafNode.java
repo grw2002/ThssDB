@@ -16,7 +16,6 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
   //  ArrayList<V> values;
   Page<V> values;
   private BPlusTreeLeafNode<K, V> next;
-  //  transient private String databaseName, tableName;
 
   BPlusTreeLeafNode(int size, String identifier) {
     keys = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));

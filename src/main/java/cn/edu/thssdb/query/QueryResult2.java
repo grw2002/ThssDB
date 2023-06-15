@@ -57,7 +57,7 @@ public class QueryResult2 {
     }
     QueryTable2 resultTable = new QueryTable2("result", columns);
     for (Row row : queryTable2) {
-      Row newRow = new MemRow();
+      Row newRow = new Row();
       for (Integer columnIndex : resultColumnIndex) {
         newRow.addEntry(row.getEntries().get(columnIndex));
       }

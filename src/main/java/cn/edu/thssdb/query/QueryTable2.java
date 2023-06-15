@@ -2,7 +2,6 @@ package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Entry;
-import cn.edu.thssdb.schema.MemRow;
 import cn.edu.thssdb.schema.Row;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
@@ -202,13 +201,13 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
     List<Row> oldrows = new LinkedList<>();
     List<Row> newrows = new LinkedList<>();
     List<Row> tmp;
-    oldrows.add(new MemRow());
+    oldrows.add(new Row());
     for (QueryTable2 querytable : querytables) {
       columns.addAll(querytable.getColumns());
       tableNames.add(querytable.getQueryName());
       for (Row currentRow : querytable) {
         for (Row oldrow : oldrows) {
-          Row newrow = new MemRow();
+          Row newrow = new Row();
           newrow.getEntries().addAll(oldrow.getEntries());
           newrow.getEntries().addAll(currentRow.getEntries());
           newrows.add(newrow);
