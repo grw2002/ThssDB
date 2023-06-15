@@ -46,8 +46,7 @@ public class SimpleSinglePlan extends LogicalPlan {
   public SimpleSinglePlan(
       List<SQLParser.ResultColumnContext> resultColumnContext,
       String tableName,
-      SQLParser.ConditionContext conditionContext
-  ) {
+      SQLParser.ConditionContext conditionContext) {
     super(LogicalPlanType.SIMPLE_SELECT_SINGLE_TABLE);
     this.resultColumns = resultColumnContext;
     this.tableName = tableName;

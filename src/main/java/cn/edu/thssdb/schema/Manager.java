@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.storage.Storage;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -19,21 +20,28 @@ public class Manager {
   private HashMap<String, Database> databases;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private Database currentDatabase;
+  private final Storage storage;
 
   /* Persistence
    * saveMetaDataToFile & loadMetaDataFromFile
    */
   public void saveTableDataToFile() {
-    for (Table table : currentDatabase.getTables()) {
-      // 保存每个表的数据
-      table.saveTableDataToFile();
+    for (Database database : databases.values()) {
+      for (Table table : database.getTables()) {
+        // 保存每个表的数据
+        table.saveTableDataToFile();
+      }
     }
+  }
+
+  public Storage getStorage() {
+    return storage;
   }
 
   public void saveMetaDataToFile(String filePath) {
     try (FileOutputStream fos = new FileOutputStream(filePath);
-         GZIPOutputStream gos = new GZIPOutputStream(fos);
-         ObjectOutputStream oos = new ObjectOutputStream(gos)) {
+        GZIPOutputStream gos = new GZIPOutputStream(fos);
+        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
 
       oos.writeObject(this.databases);
     } catch (IOException e) {
@@ -53,8 +61,8 @@ public class Manager {
       return; // 如果发生异常，直接返回
     }
     try (FileInputStream fis = new FileInputStream(filePath);
-         GZIPInputStream gis = new GZIPInputStream(fis);
-         ObjectInputStream ois = new ObjectInputStream(gis)) {
+        GZIPInputStream gis = new GZIPInputStream(fis);
+        ObjectInputStream ois = new ObjectInputStream(gis)) {
 
       Object fileContent = ois.readObject();
       if (fileContent != null) {
@@ -100,6 +108,7 @@ public class Manager {
     // TODO
     databases = new HashMap<>();
     currentDatabase = null;
+    this.storage = new Storage();
   }
 
   public Database getCurrentDatabase() {
@@ -278,10 +287,16 @@ public class Manager {
     table.updateWithConditions(columnName, newValue, conditions);
   }
 
+  public Database findDatabaseByName(String databaseName) throws RuntimeException {
+    if (databases.containsKey(databaseName)) {
+      return databases.get(databaseName);
+    }
+    throw new DatabaseNotExistException();
+  }
+
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
-    private ManagerHolder() {
-    }
+    private ManagerHolder() {}
   }
 }

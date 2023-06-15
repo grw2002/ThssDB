@@ -254,7 +254,8 @@ public class IServiceHandler implements IService.Iface {
         QueryTable2 queryTable2 =
             manager
                 .getCurrentDatabase()
-                .selectSimpleSingle(simpleSinglePlan.getTableName(), simpleSinglePlan.getCondition());
+                .selectSimpleSingle(
+                    simpleSinglePlan.getTableName(), simpleSinglePlan.getCondition());
       case SIMPLE_SELECT_JOIN_TABLE:
         SimpleJoinPlan simpleJoinPlan = (SimpleJoinPlan) plan;
       case SELECT_FROM_TABLE:

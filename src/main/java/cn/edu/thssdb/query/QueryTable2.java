@@ -2,19 +2,19 @@ package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Entry;
+import cn.edu.thssdb.schema.MemRow;
 import cn.edu.thssdb.schema.Row;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.*;
 
-public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializable {
+public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
 
   protected String queryName;
   // In memory
-  private List<Row> rows;
+  private final List<Row> rows;
 
   public String getQueryName() {
     return queryName;
@@ -22,7 +22,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
 
   public QueryTable2(String queryName, List<Column> columns) {
     super(columns);
-    for (Column column : columns) {
+    for (Column column : this.columns) {
       column.setQueryTable(this);
     }
     this.queryName = queryName;
@@ -70,6 +70,9 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
             column = metaInfo.findColumnByName(columnName, tableName);
           } else {
             column = metaInfo.findColumnByName(columnName);
+          }
+          if (column == null) {
+            System.out.println("column is null " + columnFullName.getText());
           }
           Comparable value = row.getEntries().get(column.getIndex()).value;
           if (column.getType() == ColumnType.STRING) {
@@ -157,11 +160,10 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
 
   public static QueryTable2 filterCondition(
       QueryTable2 queryTable, SQLParser.MultipleConditionContext conditions) {
-    Iterator iter = queryTable.iterator();
-    QueryTable2 newQueryTable =
-        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
+    Iterator<Row> iter = queryTable.iterator();
+    QueryTable2 newQueryTable = new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
     while (iter.hasNext()) {
-      Row row = (Row) iter.next();
+      Row row = iter.next();
       if (isConditionSatisfied(queryTable, row, conditions)) {
         newQueryTable.insert(row);
       }
@@ -172,8 +174,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
   public static QueryTable2 filterCondition(
       QueryTable2 queryTable, SQLParser.ConditionContext condition) {
     Iterator iter = queryTable.iterator();
-    QueryTable2 newQueryTable =
-        new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
+    QueryTable2 newQueryTable = new QueryTable2(queryTable.getQueryName(), queryTable.getColumns());
     while (iter.hasNext()) {
       Row row = (Row) iter.next();
       if (isConditionSatisfied(queryTable, row, condition)) {
@@ -201,13 +202,13 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
     List<Row> oldrows = new LinkedList<>();
     List<Row> newrows = new LinkedList<>();
     List<Row> tmp;
-    oldrows.add(new Row());
+    oldrows.add(new MemRow());
     for (QueryTable2 querytable : querytables) {
       columns.addAll(querytable.getColumns());
       tableNames.add(querytable.getQueryName());
       for (Row currentRow : querytable) {
         for (Row oldrow : oldrows) {
-          Row newrow = new Row();
+          Row newrow = new MemRow();
           newrow.getEntries().addAll(oldrow.getEntries());
           newrow.getEntries().addAll(currentRow.getEntries());
           newrows.add(newrow);
@@ -218,8 +219,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row>, Serializabl
       newrows = tmp;
       newrows.clear();
     }
-    QueryTable2 newQueryTable =
-        new QueryTable2(String.join(" joins ", tableNames), columns);
+    QueryTable2 newQueryTable = new QueryTable2(String.join(" joins ", tableNames), columns);
     newQueryTable.insert(oldrows.toArray(new Row[0]));
     return newQueryTable;
   }

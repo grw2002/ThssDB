@@ -33,7 +33,7 @@ import java.util.*;
 
 public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
-  private Manager manager;
+  private final Manager manager;
 
   public ThssDBSQLVisitor(Manager manager) {
     this.manager = manager;
@@ -78,7 +78,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   private Column parseColumnDef(SQLParser.ColumnDefContext ctx) {
     String columnName = ctx.columnName().getText();
     String columnType = ctx.typeName().getText();
-    int primary = 0;
+    boolean primary = false;
     boolean notnull = false;
 
     for (SQLParser.ColumnConstraintContext columnConstraintContext : ctx.columnConstraint()) {
@@ -86,7 +86,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         notnull = true;
       } else if (columnConstraintContext.K_PRIMARY() != null
           && columnConstraintContext.K_KEY() != null) {
-        primary = 1;
+        primary = true;
       }
     }
 
@@ -184,7 +184,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     for (SQLParser.ColumnDefContext columnDefContext : ctx.columnDef()) {
       String columnName = columnDefContext.columnName().getText();
       String columnType = columnDefContext.typeName().getText();
-      int primary = primaryKeys.contains(columnName) ? 1 : 0;
+      boolean primary = primaryKeys.contains(columnName);
       boolean notnull = false;
 
       for (SQLParser.ColumnConstraintContext columnConstraintContext :
@@ -234,7 +234,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
         column = parseColumnDef(ctx.columnDef());
 
         // 检查是否存在 NOT NULL 以及 PRIMARY 约束
-        if (column.isNotNull() || column.getPrimary() != 0) {
+        if (column.isNotNull() || column.isPrimary()) {
           throw new UnsupportedOperationException(
               "Adding a column with NOT NULL constraint is not allowed if the table is not empty.");
         }
@@ -251,7 +251,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
       if (ctx.columnName() != null) {
         // 删除列
         String columnName = ctx.columnName(0).getText();
-        column = new Column(columnName, ColumnType.INT, 0, false, 128);
+        column = new Column(columnName, ColumnType.INT, true, false, 128);
         return new AlterTablePlan(
             tableName, AlterTablePlan.Operation.DROP_COLUMN, column, null, null);
       } else if (ctx.tableConstraint() != null) {
@@ -263,13 +263,13 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     } else if (ctx.K_ALTER() != null) {
       String columnName = ctx.columnName(0).getText();
       newColumnType = ctx.typeName().getText();
-      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      column = new Column(columnName, ColumnType.INT, true, false, 128);
       return new AlterTablePlan(
           tableName, AlterTablePlan.Operation.ALTER_COLUMN, column, newColumnType, null);
     } else if (ctx.K_RENAME() != null) {
       String columnName = ctx.columnName(0).getText();
       newColumnName = ctx.columnName(1).getText();
-      column = new Column(columnName, ColumnType.INT, 0, false, 128);
+      column = new Column(columnName, ColumnType.INT, true, false, 128);
       return new AlterTablePlan(
           tableName, AlterTablePlan.Operation.RENAME_COLUMN, column, null, newColumnName);
     }
@@ -346,14 +346,10 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
             tableQueryContext.tableName(0).getText(),
             tableQueryContext.tableName(1).getText(),
             tableQueryContext.multipleCondition().condition(),
-            whereCondition
-        );
+            whereCondition);
       } else {
         return new SimpleSinglePlan(
-            ctx.resultColumn(),
-            tableQueryContext.tableName(0).getText(),
-            whereCondition
-        );
+            ctx.resultColumn(), tableQueryContext.tableName(0).getText(), whereCondition);
       }
     }
     return new SelectPlan2(ctx.resultColumn(), ctx.tableQuery(), ctx.multipleCondition());

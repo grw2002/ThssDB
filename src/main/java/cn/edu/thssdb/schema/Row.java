@@ -2,60 +2,31 @@ package cn.edu.thssdb.schema;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 
-public class Row implements Serializable {
-  private static final long serialVersionUID = -5809782578272943999L;
-  protected ArrayList<Entry> entries;
-
-  public Row() {
-    this.entries = new ArrayList<>();
-  }
-
-  public Row(Entry[] entries) {
-    this.entries = new ArrayList<>(Arrays.asList(entries));
-  }
-
-  public ArrayList<Entry> getEntries() {
-    return entries;
-  }
-
-  public void appendEntries(ArrayList<Entry> entries) {
-    this.entries.addAll(entries);
-  }
+public abstract class Row implements Serializable {
+  protected static final long serialVersionUID = -5709782578272943998L;
+  //  private int pageId;
+  //  private int offset;
 
   public String toString() {
+    List<Entry> entries = getEntries();
     if (entries == null) return "EMPTY";
     StringJoiner sj = new StringJoiner(", ");
     for (Entry e : entries) sj.add(e.toString());
     return sj.toString();
   }
 
-  public void addEntry(Entry entry) {
-    this.entries.add(entry);
-  }
+  public abstract void addEntry(Entry entry);
 
-  public void dropEntry(int index) {
-    this.entries.remove(index);
-  }
+  public abstract void dropEntry(int index);
 
-  public void alterEntryType(int index, Entry newEntry) {
-    this.entries.set(index, newEntry);
-  }
+  public abstract void alterEntryType(int index, Entry newEntry);
 
-  public void alterEntryName(int index, Entry newEntry) {
-    this.entries.set(index, newEntry);
-  }
+  public abstract void alterEntryName(int index, Entry newEntry);
 
-  public Row combine(Row poll) {
-    Entry[] entries = new Entry[this.entries.size() + poll.entries.size()];
-    for (int i = 0; i < this.entries.size(); i++) {
-      entries[i] = this.entries.get(i);
-    }
-    for (int i = 0; i < poll.entries.size(); i++) {
-      entries[i + this.entries.size()] = poll.entries.get(i);
-    }
-    return new Row(entries);
-  }
+  public abstract List<Entry> getEntries();
+
+  public abstract void appendEntries(ArrayList<Entry> entries);
 }

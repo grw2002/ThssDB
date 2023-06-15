@@ -12,7 +12,6 @@ import cn.edu.thssdb.utils.StatusUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,36 +21,36 @@ public class QueryResultTest {
   private Manager manager;
 
   static final Column[] columns1 =
-      new Column[]{
-          new Column("id", ColumnType.INT, true, true, 0),
-          new Column("name", ColumnType.STRING, false, false, 128),
-          new Column("age", ColumnType.INT, false, false, 0),
+      new Column[] {
+        new Column("id", ColumnType.INT, true, true, 0),
+        new Column("name", ColumnType.STRING, false, false, 128),
+        new Column("age", ColumnType.INT, false, false, 0),
       };
 
   static final Row[] rows1 =
-      new Row[]{
-          new Row(new Entry[]{new Entry(1), new Entry("name1"), new Entry(20)}),
-          new Row(new Entry[]{new Entry(2), new Entry("name2"), new Entry(21)}),
-          new Row(new Entry[]{new Entry(3), new Entry("name3"), new Entry(22)}),
-          new Row(new Entry[]{new Entry(4), new Entry("name4"), new Entry(23)}),
-          new Row(new Entry[]{new Entry(5), new Entry("name5"), new Entry(24)}),
-          new Row(new Entry[]{new Entry(6), new Entry("name6"), new Entry(25)}),
-          new Row(new Entry[]{new Entry(7), new Entry("name7"), new Entry(26)}),
+      new Row[] {
+        new MemRow(new Entry[] {new Entry(1), new Entry("name1"), new Entry(20)}),
+        new MemRow(new Entry[] {new Entry(2), new Entry("name2"), new Entry(21)}),
+        new MemRow(new Entry[] {new Entry(3), new Entry("name3"), new Entry(22)}),
+        new MemRow(new Entry[] {new Entry(4), new Entry("name4"), new Entry(23)}),
+        new MemRow(new Entry[] {new Entry(5), new Entry("name5"), new Entry(24)}),
+        new MemRow(new Entry[] {new Entry(6), new Entry("name6"), new Entry(25)}),
+        new MemRow(new Entry[] {new Entry(7), new Entry("name7"), new Entry(26)}),
       };
 
   static final Column[] columns2 =
-      new Column[]{
-          new Column("id", ColumnType.INT, true, true, 0),
-          new Column("location", ColumnType.STRING, false, false, 128),
-          new Column("phone", ColumnType.INT, false, false, 0),
+      new Column[] {
+        new Column("id", ColumnType.INT, true, true, 0),
+        new Column("location", ColumnType.STRING, false, false, 128),
+        new Column("phone", ColumnType.INT, false, false, 0),
       };
   static final Row[] rows2 =
-      new Row[]{
-          new Row(new Entry[]{new Entry(1), new Entry("location1"), new Entry(100000)}),
-          new Row(new Entry[]{new Entry(2), new Entry("location2"), new Entry(100001)}),
-          new Row(new Entry[]{new Entry(3), new Entry("location3"), new Entry(100002)}),
-          new Row(new Entry[]{new Entry(4), new Entry("location4"), new Entry(100003)}),
-          new Row(new Entry[]{new Entry(5), new Entry("location5"), new Entry(100004)}),
+      new Row[] {
+        new MemRow(new Entry[] {new Entry(1), new Entry("location1"), new Entry(100000)}),
+        new MemRow(new Entry[] {new Entry(2), new Entry("location2"), new Entry(100001)}),
+        new MemRow(new Entry[] {new Entry(3), new Entry("location3"), new Entry(100002)}),
+        new MemRow(new Entry[] {new Entry(4), new Entry("location4"), new Entry(100003)}),
+        new MemRow(new Entry[] {new Entry(5), new Entry("location5"), new Entry(100004)}),
       };
 
   @Before
@@ -135,7 +134,7 @@ public class QueryResultTest {
 
   @Test
   public void testSelectFromOneTable() {
-    String[] attrs = new String[]{"age", "name"};
+    String[] attrs = new String[] {"age", "name"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1;";
     ExecuteStatementResp res = executeStatementResp(sql);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
@@ -158,7 +157,7 @@ public class QueryResultTest {
 
   @Test
   public void testSelectFromMultipleTables() {
-    String[] attrs = new String[]{"name", "age", "age", "name", "id", "phone", "location"};
+    String[] attrs = new String[] {"name", "age", "age", "name", "id", "phone", "location"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1,table2;";
     ExecuteStatementResp res = executeStatementResp(sql);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
@@ -192,7 +191,7 @@ public class QueryResultTest {
 
   @Test
   public void testWhere() {
-    String[] attrs = new String[]{"age", "name"};
+    String[] attrs = new String[] {"age", "name"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE (age*5) > 10*(10+5)-45;";
     //    String sql="UPDATE table1 SET age=age+1 WHERE age > 1;";
     ExecuteStatementResp res = executeStatementResp(sql);

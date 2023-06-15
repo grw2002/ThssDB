@@ -21,28 +21,32 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class Table extends QueryTable2 {
+public class Table extends QueryTable2 implements Serializable {
   ReentrantReadWriteLock lock;
+  Database database;
   public String databaseName;
   private int primaryIndex;
   private final String tableName;
+  // Pair<pageId, offset>
   public transient BPlusTree<Entry, Row> index;
 
   public String getTableName() {
     return tableName;
   }
 
-  public Table(String databaseName, String tableName, List<Column> columns) {
+  public Table(Database database, String tableName, List<Column> columns) {
     // TODO
     super(tableName, columns); // 调用父类构造函数
-    this.databaseName = databaseName;
+    //    System.out.println("Mark "+tableName+" "+columns.toString());
+    this.database = database;
+    this.databaseName = database.getName();
     this.tableName = tableName;
-    this.index = new BPlusTree<>();
+    this.index = new BPlusTree<>(databaseName, tableName);
     for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).isPrimary()) {
+      if (this.columns.get(i).isPrimary()) {
         primaryIndex = i;
       }
-      columns.get(i).setTable(this);
+      this.columns.get(i).setTable(this);
     }
   }
 
@@ -62,8 +66,8 @@ public class Table extends QueryTable2 {
     String fileName = this.tableName + ".data";
 
     try (FileOutputStream fos = new FileOutputStream(fileName);
-         GZIPOutputStream gos = new GZIPOutputStream(fos);
-         ObjectOutputStream oos = new ObjectOutputStream(gos)) {
+        GZIPOutputStream gos = new GZIPOutputStream(fos);
+        ObjectOutputStream oos = new ObjectOutputStream(gos)) {
 
       oos.writeObject(this.index);
 
@@ -88,7 +92,7 @@ public class Table extends QueryTable2 {
     try {
       if (Files.size(loadPath) == 0) {
         System.out.println("Empty data file. No existing index.");
-        this.index = new BPlusTree<>(); // 如果文件为空，初始化 index 为一个空的 BPlusTree
+        this.index = new BPlusTree<>(databaseName, tableName); // 如果文件为空，初始化 index 为一个空的 BPlusTree
         return;
       }
     } catch (IOException e) {
@@ -97,20 +101,21 @@ public class Table extends QueryTable2 {
     }
 
     try (FileInputStream fis = new FileInputStream(fileName);
-         GZIPInputStream gis = new GZIPInputStream(fis);
-         ObjectInputStream ois = new ObjectInputStream(gis)) {
+        GZIPInputStream gis = new GZIPInputStream(fis);
+        ObjectInputStream ois = new ObjectInputStream(gis)) {
 
       Object fileContent = ois.readObject();
       if (fileContent != null) {
         if (fileContent instanceof BPlusTree) {
           this.index = (BPlusTree<Entry, Row>) fileContent;
+          this.index.setDatabaseAndTableName(databaseName, tableName);
           System.out.println("loading...");
         } else {
           System.out.println("Invalid data file content. Expected BPlusTree<Entry, Row>.");
         }
       } else {
         System.out.println("Empty data file. Initializing index as an empty BPlusTree.");
-        this.index = new BPlusTree<>();
+        this.index = new BPlusTree<>(databaseName, tableName);
       }
       System.out.println("loaded");
     } catch (IOException | ClassNotFoundException e) {
@@ -145,8 +150,7 @@ public class Table extends QueryTable2 {
     }
   }
 
-  public static Entry entryParse(
-      SQLParser.LiteralValueContext literal, Column column) {
+  public static Entry entryParse(SQLParser.LiteralValueContext literal, Column column) {
     boolean notNull = column.isNotNull();
     if (literal.K_NULL() != null) {
       if (notNull) throw new NotNullException(column.getName());
@@ -236,7 +240,7 @@ public class Table extends QueryTable2 {
 
   // util: initTransientFields BPlusTree & Map
   public void initTransientFields() {
-    this.index = new BPlusTree<>();
+    this.index = new BPlusTree<>(databaseName, tableName);
     this.columnIndex = new HashMap<>();
     updateColumnIndex();
   }
@@ -269,7 +273,7 @@ public class Table extends QueryTable2 {
         while (iterator.hasNext()) {
           Pair<Entry, Row> pair = iterator.next();
           row = pair.right;
-          oldEntry = row.entries.get(columnIndex);
+          oldEntry = row.getEntries().get(columnIndex);
           try {
             newEntry =
                 entryParse(
@@ -316,9 +320,9 @@ public class Table extends QueryTable2 {
 
   @Override
   public void insert(Row row) {
-    Entry primaryKey = row.entries.get(primaryIndex);
+    Entry primaryKey = row.getEntries().get(primaryIndex);
     if (!index.contains(primaryKey)) {
-      index.put(row.entries.get(primaryIndex), row);
+      index.put(row.getEntries().get(primaryIndex), row);
     }
   }
 
@@ -388,8 +392,8 @@ public class Table extends QueryTable2 {
         }
       }
 
-      Row row = new Row(entries);
-      insert(new Row[]{row});
+      Row row = new MemRow(entries);
+      insert(new Row[] {row});
     }
   }
 
@@ -423,7 +427,7 @@ public class Table extends QueryTable2 {
 
       // Check if the condition is satisfied for this row
       switch (operator) {
-        // '=', '<>', '<', '>', '<=', '>='
+          // '=', '<>', '<', '>', '<=', '>='
         case "=":
           if (columnValue.equals(value)) {
             toDelete.add(pair.left);
@@ -569,7 +573,7 @@ public class Table extends QueryTable2 {
   public void update(Entry[] primaryKeys, int columnIndexToUpdate, Entry newValue) {
     // TODO
     for (Entry primaryKey : primaryKeys) {
-      index.get(primaryKey).entries.set(columnIndexToUpdate, newValue);
+      index.get(primaryKey).getEntries().set(columnIndexToUpdate, newValue);
     }
   }
 
@@ -582,7 +586,7 @@ public class Table extends QueryTable2 {
     return null;
   }
 
-  private static class TableIterator implements Iterator<Row> {
+  private class TableIterator implements Iterator<Row> {
     private final Iterator<Pair<Entry, Row>> iterator;
 
     public TableIterator(Table table) {
