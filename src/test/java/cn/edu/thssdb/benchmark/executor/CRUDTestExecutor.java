@@ -264,7 +264,7 @@ public class CRUDTestExecutor extends TestExecutor {
     List<Integer> columnList = new ArrayList<>();
     columnList.add(1);
     columnList.add(2);
-    Set<List<Object>> expectedResult = extractData(dataMap.get("test_table1"), columnList);
+    Set<List<Object>> expectedResult = extractData(dataMap.get("test_table2"), columnList);
 
     Assert.assertTrue(equals(queryResult, expectedResult));
 
@@ -289,7 +289,7 @@ public class CRUDTestExecutor extends TestExecutor {
     columnList.clear();
     columnList.add(2);
     columnList.add(3);
-    expectedResult = extractData(dataMap.get("test_table1"), columnList);
+    expectedResult = extractData(dataMap.get("test_table3"), columnList);
 
     Assert.assertTrue(equals(queryResult, expectedResult));
   }
