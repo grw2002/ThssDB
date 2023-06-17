@@ -96,6 +96,16 @@ public class Manager {
     locks.add(lock);
   }
 
+  public synchronized void transactionAddMultipleLocks(long sessionId, List<Lock> locks) {
+    List<Lock> curLocks = tranLocks.get(sessionId);
+    for (Lock lock : locks) {
+      if (curLocks.contains(lock)) {
+        continue;
+      }
+      lock.lock();
+    }
+  }
+
   public void autoCommit(long sessionId) {
     if (autoExecute.containsKey(sessionId)) {
       if (autoExecute.get(sessionId)) {
