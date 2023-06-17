@@ -20,11 +20,28 @@ import java.util.zip.GZIPOutputStream;
 public class Manager {
   private HashMap<String, Database> databases;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private boolean inTransaction = false;
   private Database currentDatabase;
+  public ArrayList<Long> transactionSessions;
+  public ArrayList<Long> lockQueue;
+  public HashMap<Long, Boolean> autoExecute;
+  public HashMap<Long, ArrayList<String>> xLockHash;
+  public HashMap<Long, ArrayList<String>> sLockHash;
   private final Storage storage;
 
   public Storage getStorage() {
     return storage;
+  /* Lock and unlock
+   */
+
+  public void beginTransaction() {
+    lock.writeLock().lock();
+    inTransaction = true;
+  }
+
+  public void commit() {
+    lock.writeLock().unlock();
+    inTransaction = false;
   }
 
   public void persist(String filePath) {
@@ -82,6 +99,11 @@ public class Manager {
   public Manager() {
     // TODO
     databases = new HashMap<>();
+    autoExecute = new HashMap<>();
+    xLockHash = new HashMap<>();
+    sLockHash = new HashMap<>();
+    transactionSessions = new ArrayList<>();
+    lockQueue = new ArrayList<>();
     currentDatabase = null;
     this.storage = new Storage();
   }
