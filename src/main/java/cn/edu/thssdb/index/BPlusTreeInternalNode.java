@@ -1,11 +1,13 @@
 package cn.edu.thssdb.index;
 
+import cn.edu.thssdb.storage.Cloneable;
 import cn.edu.thssdb.utils.Global;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
-public final class BPlusTreeInternalNode<K extends Comparable<K>, V> extends BPlusTreeNode<K, V> {
+public final class BPlusTreeInternalNode<K extends Comparable<K>, V extends Cloneable<V>>
+    extends BPlusTreeNode<K, V> {
 
   ArrayList<BPlusTreeNode<K, V>> children;
 

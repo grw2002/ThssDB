@@ -3,13 +3,15 @@ package cn.edu.thssdb.storage;
 import cn.edu.thssdb.schema.Manager;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Page<V> implements Serializable, PageInterface {
+public class Page<V extends Cloneable<V>> implements Serializable, PageInterface {
   private static final long serialVersionUID = -5809782578272943999L;
 
   transient ArrayList<V> rows;
@@ -17,6 +19,8 @@ public class Page<V> implements Serializable, PageInterface {
   transient boolean modified;
   transient Storage storage;
   transient long lastVisit;
+  transient ReentrantReadWriteLock lock;
+  transient ReentrantLock loadLock;
 
   private final String identifier;
 
@@ -34,7 +38,10 @@ public class Page<V> implements Serializable, PageInterface {
     this.load = true;
     this.modified = false;
     this.storage = Manager.getInstance().getStorage();
+    this.lock = new ReentrantReadWriteLock();
+    this.loadLock = new ReentrantLock();
     updateLastVisit();
+    this.storage.addPage(this);
   }
 
   @Override
@@ -48,43 +55,93 @@ public class Page<V> implements Serializable, PageInterface {
 
   private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
+    this.load = true;
+    this.modified = false;
     this.storage = Manager.getInstance().getStorage();
+    this.lock = new ReentrantReadWriteLock();
+    this.loadLock = new ReentrantLock();
+    updateLastVisit();
   }
 
   public void set(int index, V value) {
-    if (!load) {
-      loadPage();
+    try {
+      this.loadLock.lock();
+      if (!load) {
+        loadPage();
+        load = true;
+      }
+      updateLastVisit();
+      this.lock.writeLock().lock();
+      this.loadLock.unlock();
+      rows.set(index, value);
+    } finally {
+      lock.writeLock().unlock();
     }
-    this.modified = true;
-    rows.set(index, value);
-    updateLastVisit();
   }
 
   public V get(int index) {
-    //    System.out.println("Page "+uuid+" "+load);
-    if (!load) {
-      loadPage();
+    V result;
+    try {
+      this.loadLock.lock();
+      if (!load) {
+        loadPage();
+        load = true;
+      }
+      updateLastVisit();
+      this.lock.readLock().lock();
+      this.loadLock.unlock();
+      result = rows.get(index);
+    } finally {
+      lock.readLock().unlock();
     }
-    updateLastVisit();
-    return rows.get(index);
+    return result;
+  }
+
+  public List<V> getallClone(int length) {
+    List<V> result = new ArrayList<>();
+    try {
+      this.loadLock.lock();
+      if (!load) {
+        loadPage();
+        load = true;
+      }
+      updateLastVisit();
+      this.lock.readLock().lock();
+      this.loadLock.unlock();
+      for (int i = 0; i < length; i++) {
+        result.add(rows.get(i).clone());
+      }
+    } finally {
+      lock.readLock().unlock();
+    }
+    return result;
   }
 
   public void loadPage() {
-    try (FileInputStream fis = new FileInputStream(getPageFileName(identifier, uuid));
-        FileChannel inChannel = fis.getChannel()) {
+    //    System.out.println("Try write loadpage lock " + getPageFileName());
+    lock.writeLock().lock();
+    //    System.out.println("Get write loadpage lock " + getPageFileName());
+    Path filePath = Paths.get("./data", getPageFileName());
+    try (FileInputStream fis = new FileInputStream(filePath.toFile());
+        BufferedInputStream bis = new BufferedInputStream(fis);
+        //         FileChannel inChannel = fis.getChannel()
+        ) {
 
-      ByteBuffer buffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
+      //      ByteBuffer buffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
 
-      ByteArrayInputStream bis = new ByteArrayInputStream(buffer.array());
+      //      ByteArrayInputStream bis = new ByteArrayInputStream(buffer.array());
       ObjectInputStream ois = new ObjectInputStream(bis);
 
       this.rows = (ArrayList<V>) ois.readObject();
       this.load = true;
+      storage.addPage(this);
 
     } catch (IOException e) {
       e.printStackTrace();
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
+    } finally {
+      lock.writeLock().unlock();
     }
   }
 
@@ -99,23 +156,28 @@ public class Page<V> implements Serializable, PageInterface {
 
   @Override
   public void release() {
-    //    if (modified) {
-    persist();
-    //    }
-    rows = null;
-    this.load = false;
+    loadLock.lock();
+    //    System.out.println("Try write lock " + getPageFileName());
+    lock.writeLock().lock();
+    //    System.out.println("Get write lock " + getPageFileName());
+    try {
+      persist();
+      rows = null;
+      this.load = false;
+    } finally {
+      lock.writeLock().unlock();
+      loadLock.unlock();
+    }
   }
 
   @Override
   public void persist() {
-    try (FileOutputStream fos = new FileOutputStream(getPageFileName())) {
-      //      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    Path filePath = Paths.get("./data", getPageFileName());
+    try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(rows);
+      oos.flush();
       oos.close();
-      fos.close();
-      //      byte[] data = bos.toByteArray();
-      //      fos.write(data);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -125,7 +187,12 @@ public class Page<V> implements Serializable, PageInterface {
     return getPageFileName(identifier, uuid);
   }
 
-  public static String getPageFileName(String DatabaseName, UUID uuid) {
-    return DatabaseName + "_" + uuid.toString() + ".data";
+  public static String getPageFileName(String identifier, UUID uuid) {
+    return identifier + "_" + uuid.toString() + ".data";
+  }
+
+  public ReentrantReadWriteLock.WriteLock getReadLock() {
+    //    System.out.println("Get read lock "+getPageFileName());
+    return lock.writeLock();
   }
 }

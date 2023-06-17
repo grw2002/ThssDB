@@ -1,11 +1,15 @@
 package cn.edu.thssdb.index;
 
+import cn.edu.thssdb.storage.Cloneable;
+import cn.edu.thssdb.storage.Page;
 import cn.edu.thssdb.utils.Pair;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
-public class BPlusTreeIterator<K extends Comparable<K>, V> implements Iterator<Pair<K, V>> {
+public class BPlusTreeIterator<K extends Comparable<K>, V extends Cloneable<V>>
+    implements Iterator<Pair<K, V>> {
   private final LinkedList<BPlusTreeNode<K, V>> queue;
   private final LinkedList<Pair<K, V>> buffer;
 
@@ -27,9 +31,10 @@ public class BPlusTreeIterator<K extends Comparable<K>, V> implements Iterator<P
       while (true) {
         BPlusTreeNode<K, V> node = queue.poll();
         if (node instanceof BPlusTreeLeafNode) {
+          Page<V> page = ((BPlusTreeLeafNode<K, V>) node).values;
+          List<V> allVals = page.getallClone(node.size());
           for (int i = 0; i < node.size(); i++)
-            buffer.add(
-                new Pair<>(node.keys.get(i), ((BPlusTreeLeafNode<K, V>) node).values.get(i)));
+            buffer.add(new Pair<>(node.keys.get(i), allVals.get(i)));
           break;
         } else if (node instanceof BPlusTreeInternalNode)
           for (int i = 0; i <= node.size(); i++)
