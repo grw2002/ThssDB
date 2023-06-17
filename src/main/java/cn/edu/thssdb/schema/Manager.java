@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.storage.Storage;
 
 import java.io.*;
@@ -22,23 +23,11 @@ public class Manager {
   private Database currentDatabase;
   private final Storage storage;
 
-  /* Persistence
-   * saveMetaDataToFile & loadMetaDataFromFile
-   */
-  public void saveTableDataToFile() {
-    for (Database database : databases.values()) {
-      for (Table table : database.getTables()) {
-        // 保存每个表的数据
-        table.saveTableDataToFile();
-      }
-    }
-  }
-
   public Storage getStorage() {
     return storage;
   }
 
-  public void saveMetaDataToFile(String filePath) {
+  public void persist(String filePath) {
     try (FileOutputStream fos = new FileOutputStream(filePath);
         GZIPOutputStream gos = new GZIPOutputStream(fos);
         ObjectOutputStream oos = new ObjectOutputStream(gos)) {
@@ -47,9 +36,12 @@ public class Manager {
     } catch (IOException e) {
       e.printStackTrace();
     }
+    for (Database database : databases.values()) {
+      database.persist();
+    }
   }
 
-  public void loadMetaDataFromFile(String filePath) {
+  public void recover(String filePath) {
     Path loadPath = Paths.get(filePath);
     try {
       if (Files.size(loadPath) == 0) {
@@ -69,9 +61,7 @@ public class Manager {
         if (fileContent instanceof HashMap) {
           this.databases = (HashMap<String, Database>) fileContent;
           for (Database database : this.databases.values()) {
-            for (Table table : database.getTables()) {
-              table.initTransientFields();
-            }
+            database.recover();
           }
         } else {
           System.out.println("Invalid metadata file content. Expected HashMap<String, Database>.");
@@ -86,21 +76,6 @@ public class Manager {
 
   public static Manager getInstance() {
     Manager instance = Manager.ManagerHolder.INSTANCE;
-    String fileName = "metadata.meta";
-    Path filePath = Paths.get(fileName);
-
-    if (!Files.exists(filePath)) {
-      // File not Exist -> Create File
-      try {
-        Files.createFile(filePath);
-      } catch (IOException e) {
-        // Handle Exception
-        e.printStackTrace();
-      }
-      return instance;
-    }
-
-    instance.loadMetaDataFromFile(filePath.toString());
     return instance;
   }
 
@@ -152,11 +127,7 @@ public class Manager {
   public void switchDatabase(String databaseName) throws RuntimeException {
     // 如果当前数据库不为空
     if (currentDatabase != null) {
-      // 遍历当前数据库中的所有表
-      for (Table table : currentDatabase.getTables()) {
-        // 保存每个表的数据
-        table.saveTableDataToFile();
-      }
+      currentDatabase.persist();
     }
 
     // 切换数据库
@@ -246,7 +217,7 @@ public class Manager {
       throw new TableNotExistException(tableName);
     }
 
-    table.loadTableDataFromFile();
+    table.recover();
     return table.getAllRowsInfo();
   }
 
@@ -258,7 +229,7 @@ public class Manager {
       throw new TableNotExistException(tableName);
     }
 
-    table.loadTableDataFromFile();
+    table.recover();
     table.insertNameValue(columnNames, values);
   }
 
@@ -269,12 +240,15 @@ public class Manager {
       throw new TableNotExistException(tableName);
     }
 
-    table.loadTableDataFromFile();
+    table.recover();
     table.deleteWithConditions(conditions);
   }
 
   public void updateTable(
-      String tableName, String columnName, String newValue, List<String> conditions) {
+      String tableName,
+      String columnName,
+      SQLParser.LiteralValueContext newValue,
+      SQLParser.ConditionContext condition) {
     // Find the table
     Table table = this.currentDatabase.findTableByName(tableName);
 
@@ -282,9 +256,9 @@ public class Manager {
       throw new TableNotExistException(tableName);
     }
 
-    table.loadTableDataFromFile();
+    table.recover();
     // Call the new update method in Table class
-    table.updateWithConditions(columnName, newValue, conditions);
+    table.updateWithConditions(columnName, newValue, condition);
   }
 
   public Database findDatabaseByName(String databaseName) throws RuntimeException {

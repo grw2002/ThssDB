@@ -1,21 +1,26 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-
-import java.util.List;
+import cn.edu.thssdb.sql.SQLParser;
 
 public class UpdatePlan extends LogicalPlan {
   private final String tableName;
   private final String columnName;
-  private final String newValue;
-  private final List<String> conditions;
+  //  private final String newValue;
+  //  private final List<String> conditions;
+  private final SQLParser.LiteralValueContext newValue;
+  private final SQLParser.ConditionContext condition;
 
-  public UpdatePlan(String tableName, String columnName, String newValue, List<String> conditions) {
+  public UpdatePlan(
+      String tableName,
+      String columnName,
+      SQLParser.LiteralValueContext newValue,
+      SQLParser.ConditionContext condition) {
     super(LogicalPlanType.UPDATE_TABLE);
     this.tableName = tableName;
     this.columnName = columnName;
     this.newValue = newValue;
-    this.conditions = conditions;
+    this.condition = condition;
   }
 
   public String getTableName() {
@@ -26,12 +31,12 @@ public class UpdatePlan extends LogicalPlan {
     return columnName;
   }
 
-  public String getNewValue() {
+  public SQLParser.LiteralValueContext getNewValue() {
     return newValue;
   }
 
-  public List<String> getConditions() {
-    return conditions;
+  public SQLParser.ConditionContext getCondition() {
+    return condition;
   }
 
   @Override
@@ -42,9 +47,9 @@ public class UpdatePlan extends LogicalPlan {
         + "' "
         + columnName
         + "="
-        + newValue
+        + newValue.getText()
         + " WHERE "
-        + conditions.toString()
+        + condition.getText()
         + '}';
   }
 }

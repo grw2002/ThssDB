@@ -13,7 +13,7 @@ public class Database implements Serializable {
 
   private final String name;
   private final HashMap<String, Table> tables;
-  ReentrantReadWriteLock lock;
+  transient ReentrantReadWriteLock lock;
 
   public Database(String name) {
     this.name = name;
@@ -46,10 +46,6 @@ public class Database implements Serializable {
 
   public Table findTableByName(String tableName) {
     return tables.get(tableName);
-  }
-
-  private void persist() {
-    // TODO
   }
 
   public void create(String tableName, List<Column> columns) throws RuntimeException {
@@ -205,8 +201,18 @@ public class Database implements Serializable {
     return QueryTable2.joinQueryTables(Arrays.asList(tableL, tableR), joinCondition);
   }
 
-  private void recover() {
-    // TODO
+  public void recover() {
+    for (Table table : getTables()) {
+      table.initTransientFields();
+    }
+  }
+
+  public void persist() {
+    // 遍历当前数据库中的所有表
+    for (Table table : getTables()) {
+      // 保存每个表的数据
+      table.persist();
+    }
   }
 
   public void quit() {

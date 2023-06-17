@@ -13,10 +13,16 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
 
   protected String queryName;
   // In memory
-  private final List<Row> rows;
+  private transient List<Row> rows;
 
   public String getQueryName() {
     return queryName;
+  }
+
+  @Override
+  public void initTransientFields() {
+    super.initTransientFields();
+    rows = new ArrayList<>();
   }
 
   public QueryTable2(String queryName, List<Column> columns) {
@@ -25,9 +31,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
       column.setQueryTable(this);
     }
     this.queryName = queryName;
-    this.columnIndex = new HashMap<>(); // 初始化映射
     this.rows = new ArrayList<>();
-    updateColumnIndex();
   }
 
   public final void insert(Row[] rows) {
@@ -103,7 +107,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
     throw new RuntimeException("Invalid Expression" + expression.getText());
   }
 
-  private static boolean isConditionSatisfied(
+  public static boolean isConditionSatisfied(
       MetaInfo2 metaInfo, Row row, SQLParser.ConditionContext condition) throws RuntimeException {
     if (condition == null) {
       return true;
@@ -139,7 +143,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
     }
   }
 
-  private static boolean isConditionSatisfied(
+  public static boolean isConditionSatisfied(
       MetaInfo2 metaInfo, Row row, SQLParser.MultipleConditionContext conditions)
       throws RuntimeException {
     if (conditions == null) {

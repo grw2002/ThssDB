@@ -84,12 +84,11 @@ public class QueryResultTest {
       try {
         System.out.println("[DEBUG] " + plan);
         UpdatePlan updatePlan = (UpdatePlan) plan;
-        String tableName = updatePlan.getTableName();
-        String columnName = updatePlan.getColumnName();
-        String newValue = updatePlan.getNewValue();
-        List<String> conditions = updatePlan.getConditions();
-
-        manager.updateTable(tableName, columnName, newValue, conditions);
+        manager.updateTable(
+            updatePlan.getTableName(),
+            updatePlan.getColumnName(),
+            updatePlan.getNewValue(),
+            updatePlan.getCondition());
         return new ExecuteStatementResp(StatusUtil.success(), false);
       } catch (Exception e) {
         return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
@@ -177,7 +176,7 @@ public class QueryResultTest {
         List<Entry> entries2 = rows2[j].getEntries();
         for (int k = 0; k < strings.size(); k++) {
           //          System.out.println("k = " + k+" "+table1.findColumnIndexByName(attrs[k]));
-          if (k < 5) {
+          if (k < 4) {
             assertEquals(
                 entries1.get(table1.findColumnIndexByName(attrs[k])).toString(), strings.get(k));
           } else {

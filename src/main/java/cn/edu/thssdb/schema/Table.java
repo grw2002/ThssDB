@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class Table extends QueryTable2 implements Serializable {
+public class Table extends QueryTable2 {
   ReentrantReadWriteLock lock;
   Database database;
   public String databaseName;
@@ -63,7 +63,7 @@ public class Table extends QueryTable2 implements Serializable {
   */
 
   // util: save index into file
-  public void saveTableDataToFile() {
+  public void persist() {
     String fileName = this.tableName + ".data";
 
     try (FileOutputStream fos = new FileOutputStream(fileName);
@@ -79,7 +79,7 @@ public class Table extends QueryTable2 implements Serializable {
   }
 
   // util: load index from file
-  public void loadTableDataFromFile() {
+  public void recover() {
     if (index.size() != 0) {
       return;
     }
@@ -163,7 +163,7 @@ public class Table extends QueryTable2 implements Serializable {
       case LONG:
       case FLOAT:
       case DOUBLE:
-        if (literal.NUMERIC_LITERAL() != null) {
+        if (literal.NUMERIC_LITERAL() == null) {
           throw new TypeNotMatchException(column.getName());
         }
         break;
@@ -239,11 +239,11 @@ public class Table extends QueryTable2 implements Serializable {
     }
   }
 
+  @Override
   // util: initTransientFields BPlusTree & Map
   public void initTransientFields() {
     this.index = new BPlusTree<>(databaseName, tableName);
-    this.columnIndex = new HashMap<>();
-    updateColumnIndex();
+    super.initTransientFields();
   }
 
   public void alterType(String columnName, String newColumnType) {
@@ -313,10 +313,6 @@ public class Table extends QueryTable2 implements Serializable {
     if (!findFlag) {
       throw new ColumnNotExistException(columnName);
     }
-  }
-
-  private void recover() {
-    // TODO
   }
 
   @Override
@@ -421,7 +417,7 @@ public class Table extends QueryTable2 implements Serializable {
       Row row = pair.right;
 
       // Get the value in the column for this row
-      Entry columnValueEntry = row.getEntries().get(columnIndex.get(columnName));
+      Entry columnValueEntry = row.getEntries().get(findColumnIndexByName(columnName));
       String columnValue =
           columnValueEntry
               .toString(); // Assuming Entry has a toString method that returns its value
@@ -477,104 +473,46 @@ public class Table extends QueryTable2 implements Serializable {
     }
   }
 
-  public void updateWithConditions(String columnName, String newValue, List<String> conditions) {
-    // Get the column index to update
-    Integer columnIndexToUpdate = columnIndex.get(columnName);
-    if (columnIndexToUpdate == null) {
+  public static List<Entry> filterCondition(Table table, SQLParser.ConditionContext condition) {
+    Iterator iter = table.iterator();
+    List<Entry> result = new ArrayList<>();
+    while (iter.hasNext()) {
+      Row row = (Row) iter.next();
+      if (QueryTable2.isConditionSatisfied(table, row, condition)) {
+        result.add(row.getEntries().get(table.primaryIndex));
+      }
+    }
+    return result;
+  }
+
+  public void updateWithConditions(
+      String columnName,
+      SQLParser.LiteralValueContext newValue,
+      SQLParser.ConditionContext condition) {
+    System.out.println(
+        "updateWithConditions"
+            + " "
+            + columnName
+            + " "
+            + newValue.getText()
+            + " "
+            + condition.getText());
+    Column column = findColumnByName(columnName);
+    if (column == null) {
       throw new ColumnNotExistException(columnName);
     }
 
     // Parse new value to Entry according to the column type
-    Entry newEntryValue;
-    switch (getColumns().get(columnIndexToUpdate).getType()) {
-      case INT:
-        newEntryValue = new Entry(Integer.parseInt(newValue));
-        break;
-      case LONG:
-        newEntryValue = new Entry(Long.parseLong(newValue));
-        break;
-      case FLOAT:
-        newEntryValue = new Entry(Float.parseFloat(newValue));
-        break;
-      case DOUBLE:
-        newEntryValue = new Entry(Double.parseDouble(newValue));
-        break;
-      case STRING:
-        newEntryValue = new Entry(newValue);
-        break;
-      default:
-        throw new RuntimeException("Unsupported column type");
-    }
-
-    // Prepare a list for the primary keys of the rows to be updated
-    List<Entry> toUpdate = new ArrayList<>();
-
-    // Process the conditions
-    for (String condition : conditions) {
-      String[] parts = condition.split(" ");
-      String conditionColumnName = parts[0];
-      String operator = parts[1];
-      String value = parts[2];
-      if (value.startsWith("'") && value.endsWith("'")) {
-        value = value.substring(1, value.length() - 1);
-      }
-
-      // Iterate over all rows
-      BPlusTreeIterator<Entry, PageRow> iterator = index.iterator();
-      while (iterator.hasNext()) {
-        Pair<Entry, PageRow> pair = iterator.next();
-        Row row = pair.right;
-
-        // Get the value in the column for this row
-        Entry columnValueEntry = row.getEntries().get(columnIndex.get(conditionColumnName));
-        String columnValue = columnValueEntry.toString();
-
-        // Check if the condition is satisfied for this row
-        switch (operator) {
-          case "=":
-            if (columnValue.equals(value)) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          case "<>":
-            if (!columnValue.equals(value)) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          case "<":
-            if (columnValue.compareTo(value) < 0) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          case ">":
-            if (columnValue.compareTo(value) > 0) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          case "<=":
-            if (columnValue.compareTo(value) <= 0) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          case ">=":
-            if (columnValue.compareTo(value) >= 0) {
-              toUpdate.add(pair.left);
-            }
-            break;
-          default:
-            throw new RuntimeException("Invalid operator: " + operator);
-        }
-      }
-    }
-
+    Entry newEntryValue = entryParse(newValue, column);
+    List<Entry> toUpdate = filterCondition(this, condition);
     // Update the rows
-    update(toUpdate.toArray(new Entry[0]), columnIndexToUpdate, newEntryValue);
+    update(toUpdate.toArray(new Entry[0]), column.getIndex(), newEntryValue);
   }
 
   public void update(Entry[] primaryKeys, int columnIndexToUpdate, Entry newValue) {
     // TODO
     for (Entry primaryKey : primaryKeys) {
-      index.get(primaryKey).getEntries().set(columnIndexToUpdate, newValue);
+      index.get(primaryKey).updateEntry(columnIndexToUpdate, newValue);
     }
   }
 

@@ -314,21 +314,22 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   @Override
   public LogicalPlan visitUpdateStmt(SQLParser.UpdateStmtContext ctx) {
-    String tableName = ctx.tableName().getText();
-    String columnName = ctx.columnName().getText();
-    String newValue = ctx.expression().getText();
-    List<String> conditions = new ArrayList<>();
-
-    if (newValue.startsWith("'") && newValue.endsWith("'")) {
-      newValue = newValue.substring(1, newValue.length() - 1);
-    }
-    if (ctx.multipleCondition() != null) {
-      SQLParser.MultipleConditionContext multipleConditionCtx = ctx.multipleCondition();
-      // 遍历条件树
-      traverseConditionTree(multipleConditionCtx, conditions);
-    }
+    return new UpdatePlan(
+        ctx.tableName().getText(),
+        ctx.columnName().getText(),
+        ctx.expression().comparer().literalValue(),
+        ctx.multipleCondition().condition());
+    //    List<String> conditions = new ArrayList<>();
+    //
+    //    if (newValue.startsWith("'") && newValue.endsWith("'")) {
+    //      newValue = newValue.substring(1, newValue.length() - 1);
+    //    }
+    //    if (ctx.multipleCondition() != null) {
+    //      SQLParser.MultipleConditionContext multipleConditionCtx = ctx.multipleCondition();
+    //      // 遍历条件树
+    //      traverseConditionTree(multipleConditionCtx, conditions);
+    //    }
     // 创建UpdatePlan，传递表名，列名，新值和条件
-    return new UpdatePlan(tableName, columnName, newValue, conditions);
   }
 
   @Override
