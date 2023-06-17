@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -27,20 +28,65 @@ public class Manager {
   public HashMap<Long, Boolean> autoExecute;
   public HashMap<Long, ArrayList<String>> xLockHash;
   public HashMap<Long, ArrayList<String>> sLockHash;
+  public HashMap<Long, List<Lock>> tranLocks;
   private final Storage storage;
 
   public Storage getStorage() {
     return storage;
   }
 
-  public void beginTransaction() {
-    lock.writeLock().lock();
-    inTransaction = true;
+  public List<Lock> getTranLocks(Long sessionId) {
+    if (tranLocks.containsKey(sessionId)) {
+      return tranLocks.get(sessionId);
+    }
+    return null;
   }
 
-  public void commit() {
-    lock.writeLock().unlock();
-    inTransaction = false;
+  public void transactionBegin(long sessionId) {
+    if (!autoExecute.containsKey(sessionId)) {
+      autoExecute.put(sessionId, false);
+    }
+    if (!tranLocks.containsKey(sessionId) || tranLocks.get(sessionId) == null) {
+      tranLocks.put(sessionId, new ArrayList<>());
+    } else if (tranLocks.get(sessionId).size() > 0) {
+      throw new RuntimeException("transaction already begun");
+    }
+  }
+
+  public void transactionCommit(long sessionId) {
+    if (autoExecute.containsKey(sessionId)) {
+      autoExecute.remove(sessionId);
+      for (Lock lock1 : tranLocks.get(sessionId)) {
+        lock1.unlock();
+      }
+      tranLocks.remove(sessionId);
+    } else {
+      throw new RuntimeException("transaction not begun");
+    }
+  }
+
+  public void transactionAddLock(long sessionId, Lock lock) {
+    List<Lock> locks = tranLocks.get(sessionId);
+    if (locks.contains(lock)) {
+      return;
+    }
+    lock.lock();
+    locks.add(lock);
+  }
+
+  public void autoCommit(long sessionId) {
+    if (autoExecute.containsKey(sessionId)) {
+      if (autoExecute.get(sessionId)) {
+        transactionCommit(sessionId);
+      }
+    }
+  }
+
+  public void autoBegin(long sessionId) {
+    if (!autoExecute.containsKey(sessionId)) {
+      autoExecute.put(sessionId, true);
+      transactionBegin(sessionId);
+    }
   }
 
   public void persist(String filePath) {
@@ -105,6 +151,7 @@ public class Manager {
     lockQueue = new ArrayList<>();
     currentDatabase = null;
     this.storage = new Storage();
+    this.tranLocks = new HashMap<>();
   }
 
   public Database getCurrentDatabase() {
@@ -172,7 +219,12 @@ public class Manager {
       throw new RuntimeException("No database selected");
     }
 
-    currentDatabase.create(tableName, columns);
+    currentDatabase.writeLock();
+    try {
+      currentDatabase.create(tableName, columns);
+    } finally {
+      currentDatabase.writeUnlock();
+    }
   }
 
   public void dropTable(String tableName, boolean ifExists) {
