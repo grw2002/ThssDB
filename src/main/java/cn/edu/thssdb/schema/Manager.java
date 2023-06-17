@@ -31,8 +31,7 @@ public class Manager {
 
   public Storage getStorage() {
     return storage;
-  /* Lock and unlock
-   */
+  }
 
   public void beginTransaction() {
     lock.writeLock().lock();
