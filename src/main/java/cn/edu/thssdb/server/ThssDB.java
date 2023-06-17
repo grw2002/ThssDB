@@ -11,6 +11,11 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class ThssDB {
 
   private static final Logger logger = LoggerFactory.getLogger(ThssDB.class);
@@ -40,6 +45,20 @@ public class ThssDB {
 
   private static void setUp(IService.Processor processor) {
     try {
+      Manager instance = Manager.getInstance();
+      Path filePath = Paths.get(Global.METADATA_FILE_NAME);
+
+      if (!Files.exists(filePath)) {
+        // File not Exist -> Create File
+        try {
+          Files.createFile(filePath);
+        } catch (IOException e) {
+          // Handle Exception
+          e.printStackTrace();
+        }
+      }
+      instance.recover(filePath.toString());
+
       transport = new TServerSocket(Global.DEFAULT_SERVER_PORT);
       server = new TThreadPoolServer(new TThreadPoolServer.Args(transport).processor(processor));
       logger.info("Starting ThssDB ...");

@@ -2,12 +2,13 @@ package cn.edu.thssdb.query;
 
 import cn.edu.thssdb.schema.Column;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class MetaInfo2 {
+public class MetaInfo2 implements Serializable {
 
   protected List<Column> columns;
-  protected transient Map<String, Integer> columnIndex;
+  private transient Map<String, Integer> columnIndex;
 
   public List<Column> getColumns() {
     return columns;
@@ -18,6 +19,13 @@ public class MetaInfo2 {
     for (Column column : columns) {
       this.columns.add(column.clone());
     }
+    this.columnIndex = new HashMap<>();
+    updateColumnIndex();
+  }
+
+  protected void initTransientFields() {
+    columnIndex = new HashMap<>();
+    updateColumnIndex();
   }
 
   protected void updateColumnIndex() {
@@ -53,11 +61,12 @@ public class MetaInfo2 {
 
   public int findColumnIndexByName(String name) {
     //    System.out.println("findColumnIndexByName: " + name);
-    Column column = findColumnByName(name);
-    if (column != null) {
-      return column.getIndex();
-    }
-    return -1;
+    return columnIndex.get(name);
+    //    Column column = findColumnByName(name);
+    //    if (column != null) {
+    //      return column.getIndex();
+    //    }
+    //    return -1;
   }
 
   public Column findColumnByName(String name, String tableName) {

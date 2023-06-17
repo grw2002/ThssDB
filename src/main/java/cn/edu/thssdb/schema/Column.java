@@ -57,7 +57,7 @@ public class Column implements Comparable<Column>, Serializable {
     //    System.out.println("getIndex: "+table.getTableName()+" "+queryTable.getQueryName()+"
     // "+name);
     if (queryTable != null) {
-      return queryTable.getColumns().indexOf(this);
+      return queryTable.findColumnIndexByName(name);
     }
     //    if (table != null) {
     //      return table.getColumns().indexOf(this);

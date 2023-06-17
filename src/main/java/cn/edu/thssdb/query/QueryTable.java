@@ -16,7 +16,7 @@ public class QueryTable implements Iterator<Row> {
   public QueryTable(Table table) {
     // TODO
     this.table = table;
-    table.loadTableDataFromFile();
+    table.recover();
     iter = table.index.iterator();
   }
 
