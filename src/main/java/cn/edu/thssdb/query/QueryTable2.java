@@ -78,7 +78,9 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
             System.out.println("column is null " + columnFullName.getText());
           }
           Comparable value = row.getEntries().get(column.getIndex()).value;
-          if (column.getType() == ColumnType.STRING) {
+          if(value==null) {
+            return null;
+          } else if (column.getType() == ColumnType.STRING) {
             return value.toString();
           } else {
             return new BigDecimal(value.toString());
@@ -90,18 +92,22 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
     } else if (exps.size() == 1) {
       return evaluateExpression(metaInfo, row, exps.get(0));
     } else if (exps.size() == 2) {
-      BigDecimal v1 = (BigDecimal) evaluateExpression(metaInfo, row, exps.get(0));
-      BigDecimal v2 = (BigDecimal) evaluateExpression(metaInfo, row, exps.get(1));
-      if (expression.MUL() != null) {
-        return v1.multiply(v2);
-      } else if (expression.DIV() != null) {
-        return v1.divide(v2);
-      } else if (expression.ADD() != null) {
-        return v1.add(v2);
-      } else if (expression.SUB() != null) {
-        return v1.subtract(v2);
-      } else {
-        throw new RuntimeException("Invalid operator: " + expression.getText());
+      try {
+        BigDecimal v1 = (BigDecimal) evaluateExpression(metaInfo, row, exps.get(0));
+        BigDecimal v2 = (BigDecimal) evaluateExpression(metaInfo, row, exps.get(1));
+        if (expression.MUL() != null) {
+          return v1.multiply(v2);
+        } else if (expression.DIV() != null) {
+          return v1.divide(v2);
+        } else if (expression.ADD() != null) {
+          return v1.add(v2);
+        } else if (expression.SUB() != null) {
+          return v1.subtract(v2);
+        } else {
+          throw new RuntimeException("Invalid operator: " + expression.getText());
+        }
+      } catch (Exception e) {
+        return null;
       }
     }
     throw new RuntimeException("Invalid Expression" + expression.getText());

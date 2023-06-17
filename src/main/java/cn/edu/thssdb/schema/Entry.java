@@ -12,18 +12,26 @@ public class Entry implements Comparable<Entry>, Serializable {
 
   @Override
   public int compareTo(Entry e) {
+    if (e == null || e.value == null || value == null) {
+      return 0;
+    }
     return value.compareTo(e.value);
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) return false;
+    if (obj == null || value == null) {
+      return false;
+    }
     if (this.getClass() != obj.getClass()) return false;
     Entry e = (Entry) obj;
     return value.equals(e.value);
   }
 
   public String toString() {
+    if (value == null) {
+      return "null";
+    }
     return value.toString();
   }
 

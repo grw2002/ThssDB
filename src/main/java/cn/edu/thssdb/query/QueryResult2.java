@@ -52,8 +52,10 @@ public class QueryResult2 {
         }
         columns.add(column);
         resultColumnNames.add(columnFullName.getText());
-        resultColumnIndex.add(column.getIndex());
       }
+    }
+    for (Column column : columns) {
+      resultColumnIndex.add(column.getIndex());
     }
     QueryTable2 resultTable = new QueryTable2("result", columns);
     for (Row row : queryTable2) {

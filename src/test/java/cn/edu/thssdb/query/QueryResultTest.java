@@ -5,10 +5,13 @@ import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.SelectPlan2;
 import cn.edu.thssdb.plan.impl.UpdatePlan;
+import cn.edu.thssdb.rpc.thrift.ExecuteStatementReq;
 import cn.edu.thssdb.rpc.thrift.ExecuteStatementResp;
 import cn.edu.thssdb.schema.*;
+import cn.edu.thssdb.service.IServiceHandler;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.StatusUtil;
+import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -210,5 +213,34 @@ public class QueryResultTest {
             entries.get(table1.findColumnIndexByName(attrs[j])).toString(), strings.get(j));
       }
     }
+  }
+
+  @Test
+  public void testNull() throws TException {
+    IServiceHandler service= new IServiceHandler();
+    ExecuteStatementReq req=new ExecuteStatementReq(12345L,"");
+    req.setStatement("CREATE TABLE table3 (ID Int not null, age Int, name STRING(256));");
+    service.executeStatement(req);
+    req.setStatement("INSERT INTO table3 (ID,age) VALUES (1, 1);");
+    service.executeStatement(req);
+    req.setStatement("INSERT INTO table3 VALUES (2, NULL, 'aaa');");
+    service.executeStatement(req);
+    req.setStatement("SELECT * FROM table3;");
+    ExecuteStatementResp res= service.executeStatement(req);
+    System.out.println("[DEBUG] " + res.columnsList + res.rowList);
+
+    Database db = manager.getCurrentDatabase();
+    Table table1 = db.findTableByName("table1");
+    assertEquals(res.columnsList.size(), 3);
+    assertEquals(res.rowList.size(), 2);
+    List<String> row=res.rowList.get(0);
+    assertEquals(row.get(0), "1");
+    assertEquals(row.get(1), "1");
+    assertEquals(row.get(2), "null");
+
+    row=res.rowList.get(1);
+    assertEquals(row.get(0), "2");
+    assertEquals(row.get(1), "null");
+    assertEquals(row.get(2), "aaa");
   }
 }
