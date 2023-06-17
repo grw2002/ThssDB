@@ -55,4 +55,12 @@ public class PageRow extends Row {
   public final List<Entry> getEntries() {
     return Collections.unmodifiableList(entries);
   }
+
+  public void setEntries(List<Entry> entries) {
+    this.entries = (ArrayList<Entry>) entries;
+  }
+
+  public void updateEntry(int index, Entry newValue) {
+    this.entries.set(index, newValue);
+  }
 }
