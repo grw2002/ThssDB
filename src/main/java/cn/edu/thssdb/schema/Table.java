@@ -23,7 +23,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class Table extends QueryTable2 {
-  ReentrantReadWriteLock lock;
+  private transient ReentrantReadWriteLock lock;
   Database database;
   public String databaseName;
   private int primaryIndex;
@@ -44,9 +44,9 @@ public class Table extends QueryTable2 {
     this.database = database;
     this.databaseName = database.getName();
     this.tableName = tableName;
-    this.index = new BPlusTree<>(databaseName, tableName);
     this.sLockList = new ArrayList<>();
     this.xLockList = new ArrayList<>();
+    this.initTransientFields();
     for (int i = 0; i < columns.size(); i++) {
       if (this.columns.get(i).isPrimary()) {
         primaryIndex = i;
@@ -308,8 +308,33 @@ public class Table extends QueryTable2 {
   @Override
   // util: initTransientFields BPlusTree & Map
   public void initTransientFields() {
-    this.index = new BPlusTree<>(databaseName, tableName);
     super.initTransientFields();
+    this.index = new BPlusTree<>(databaseName, tableName);
+    this.lock = new ReentrantReadWriteLock();
+  }
+
+  public ReentrantReadWriteLock.ReadLock getReadLock() {
+    return this.lock.readLock();
+  }
+
+  public ReentrantReadWriteLock.WriteLock getWriteLock() {
+    return this.lock.writeLock();
+  }
+
+  public void readLock() {
+    this.lock.readLock().lock();
+  }
+
+  public void readUnlock() {
+    this.lock.readLock().unlock();
+  }
+
+  public void writeLock() {
+    this.lock.writeLock().lock();
+  }
+
+  public void writeUnlock() {
+    this.lock.writeLock().unlock();
   }
 
   public void alterType(String columnName, String newColumnType) {
@@ -433,26 +458,26 @@ public class Table extends QueryTable2 {
           if (findColumnByName(columnName).isNotNull()) {
             throw new RuntimeException("Field '" + columnName + "' cannot be null");
           }
-          entries[i]= new Entry(null);
-//          switch (column.getType()) {
-//            case INT:
-//              entries[i] = new Entry(0);
-//              break;
-//            case LONG:
-//              entries[i] = new Entry(0L);
-//              break;
-//            case FLOAT:
-//              entries[i] = new Entry(0.0f);
-//              break;
-//            case DOUBLE:
-//              entries[i] = new Entry(0.0);
-//              break;
-//            case STRING:
-//              entries[i] = new Entry("");
-//              break;
-//            default:
-//              throw new RuntimeException("Unsupported column type");
-//          }
+          entries[i] = new Entry(null);
+          //          switch (column.getType()) {
+          //            case INT:
+          //              entries[i] = new Entry(0);
+          //              break;
+          //            case LONG:
+          //              entries[i] = new Entry(0L);
+          //              break;
+          //            case FLOAT:
+          //              entries[i] = new Entry(0.0f);
+          //              break;
+          //            case DOUBLE:
+          //              entries[i] = new Entry(0.0);
+          //              break;
+          //            case STRING:
+          //              entries[i] = new Entry("");
+          //              break;
+          //            default:
+          //              throw new RuntimeException("Unsupported column type");
+          //          }
         }
       }
 

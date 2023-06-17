@@ -18,9 +18,37 @@ public class Database implements Serializable {
   public Database(String name) {
     this.name = name;
     this.tables = new HashMap<>();
-    this.lock = new ReentrantReadWriteLock();
+    this.initTransientFields();
     //    this.storage=new Storage(this);
     recover();
+  }
+
+  public void initTransientFields() {
+    this.lock = new ReentrantReadWriteLock();
+  }
+
+  public void readLock() {
+    this.lock.readLock().lock();
+  }
+
+  public void readUnlock() {
+    this.lock.readLock().unlock();
+  }
+
+  public void writeLock() {
+    this.lock.writeLock().lock();
+  }
+
+  public void writeUnlock() {
+    this.lock.writeLock().unlock();
+  }
+
+  public ReentrantReadWriteLock.ReadLock getReadLock() {
+    return this.lock.readLock();
+  }
+
+  public ReentrantReadWriteLock.WriteLock getWriteLock() {
+    return this.lock.writeLock();
   }
 
   public String getName() {

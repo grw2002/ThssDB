@@ -78,7 +78,7 @@ public class QueryTable2 extends MetaInfo2 implements Iterable<Row> {
             System.out.println("column is null " + columnFullName.getText());
           }
           Comparable value = row.getEntries().get(column.getIndex()).value;
-          if(value==null) {
+          if (value == null) {
             return null;
           } else if (column.getType() == ColumnType.STRING) {
             return value.toString();
