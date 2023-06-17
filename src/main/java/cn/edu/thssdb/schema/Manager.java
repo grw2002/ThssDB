@@ -18,12 +18,27 @@ import java.util.zip.GZIPOutputStream;
 public class Manager {
   private HashMap<String, Database> databases;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private boolean inTransaction = false;
   private Database currentDatabase;
+
+  /* Lock and unlock
+   */
+
+  public void beginTransaction() {
+    lock.writeLock().lock();
+    inTransaction = true;
+  }
+
+  public void commit() {
+    lock.writeLock().unlock();
+    inTransaction = false;
+  }
 
   /* Persistence
    * saveMetaDataToFile & loadMetaDataFromFile
    */
   public void saveTableDataToFile() {
+    if (currentDatabase == null) return;
     for (Table table : currentDatabase.getTables()) {
       // 保存每个表的数据
       table.saveTableDataToFile();
@@ -143,11 +158,7 @@ public class Manager {
   public void switchDatabase(String databaseName) throws RuntimeException {
     // 如果当前数据库不为空
     if (currentDatabase != null) {
-      // 遍历当前数据库中的所有表
-      for (Table table : currentDatabase.getTables()) {
-        // 保存每个表的数据
-        table.saveTableDataToFile();
-      }
+      saveTableDataToFile();
     }
 
     // 切换数据库
