@@ -429,29 +429,30 @@ public class Table extends QueryTable2 {
           }
           valueIndex++;
         } else {
-          // The column is not specified, use a default value
+          // The column is not specified, use NULL
           if (findColumnByName(columnName).isNotNull()) {
             throw new RuntimeException("Field '" + columnName + "' cannot be null");
           }
-          switch (column.getType()) {
-            case INT:
-              entries[i] = new Entry(0);
-              break;
-            case LONG:
-              entries[i] = new Entry(0L);
-              break;
-            case FLOAT:
-              entries[i] = new Entry(0.0f);
-              break;
-            case DOUBLE:
-              entries[i] = new Entry(0.0);
-              break;
-            case STRING:
-              entries[i] = new Entry("");
-              break;
-            default:
-              throw new RuntimeException("Unsupported column type");
-          }
+          entries[i]= new Entry(null);
+//          switch (column.getType()) {
+//            case INT:
+//              entries[i] = new Entry(0);
+//              break;
+//            case LONG:
+//              entries[i] = new Entry(0L);
+//              break;
+//            case FLOAT:
+//              entries[i] = new Entry(0.0f);
+//              break;
+//            case DOUBLE:
+//              entries[i] = new Entry(0.0);
+//              break;
+//            case STRING:
+//              entries[i] = new Entry("");
+//              break;
+//            default:
+//              throw new RuntimeException("Unsupported column type");
+//          }
         }
       }
 
