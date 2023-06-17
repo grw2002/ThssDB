@@ -331,7 +331,7 @@ public class IServiceHandler implements IService.Iface {
       case SIMPLE_SELECT_JOIN_TABLE:
         SimpleJoinPlan simpleJoinPlan = (SimpleJoinPlan) plan;
       case SELECT_FROM_TABLE:
-        List<ReentrantReadWriteLock.ReadLock> locks = new ArrayList<>();
+        List<Lock> locks = new ArrayList<>();
         try {
           // System.out.println("[DEBUG] " + plan);
           SelectPlan2 selectPlan = ((SelectPlan2) plan);
@@ -349,11 +349,11 @@ public class IServiceHandler implements IService.Iface {
               }
               ReentrantReadWriteLock.ReadLock lock = table.getReadLock();
               if (!locks.contains(lock)) {
-                lock.lock();
                 locks.add(lock);
               }
             }
           }
+          manager.transactionAddMultipleLocks(session_ID, locks);
 
           QueryTable2 queryTable =
               manager
