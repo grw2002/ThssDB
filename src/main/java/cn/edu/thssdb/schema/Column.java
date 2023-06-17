@@ -8,17 +8,17 @@ import java.io.Serializable;
 public class Column implements Comparable<Column>, Serializable {
   private String name;
   private ColumnType type;
-  private final int primary;
+  private final boolean primary;
   private final boolean notNull;
   private final int maxLength;
   private Table table;
   private QueryTable2 queryTable;
 
-  public Column(String name, ColumnType type, int primary, boolean notNull, int maxLength) {
+  public Column(String name, ColumnType type, boolean primary, boolean notNull, int maxLength) {
     this.name = name;
     this.type = type;
     this.primary = primary;
-    if (primary != 0) {
+    if (primary) {
       this.notNull = true;
     } else {
       this.notNull = notNull;
@@ -65,7 +65,7 @@ public class Column implements Comparable<Column>, Serializable {
     return -1;
   }
 
-  public int getPrimary() {
+  public boolean isPrimary() {
     return primary;
   }
 
@@ -77,7 +77,7 @@ public class Column implements Comparable<Column>, Serializable {
     return type;
   }
 
-  public boolean getNotNull() {
+  public boolean isNotNull() {
     return notNull;
   }
 

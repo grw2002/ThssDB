@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 
 public class Row implements Serializable {
@@ -17,7 +18,7 @@ public class Row implements Serializable {
     this.entries = new ArrayList<>(Arrays.asList(entries));
   }
 
-  public ArrayList<Entry> getEntries() {
+  public List<Entry> getEntries() {
     return entries;
   }
 

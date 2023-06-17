@@ -18,7 +18,7 @@ public class BPlusTreeTest {
 
   @Before
   public void setUp() {
-    tree = new BPlusTree<>();
+    tree = new BPlusTree<>(null, null);
     keys = new ArrayList<>();
     values = new ArrayList<>();
     map = new HashMap<>();

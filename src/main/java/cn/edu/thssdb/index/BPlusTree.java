@@ -9,9 +9,20 @@ public final class BPlusTree<K extends Comparable<K>, V>
 
   BPlusTreeNode<K, V> root;
   private int size;
+  private transient String databaseName, tableName;
 
-  public BPlusTree() {
-    root = new BPlusTreeLeafNode<>(0);
+  private String getIdentifier() {
+    return databaseName + "_" + tableName;
+  }
+
+  public BPlusTree(String databaseName, String tableName) {
+    root = new BPlusTreeLeafNode<>(0, getIdentifier());
+    setDatabaseAndTableName(databaseName, tableName);
+  }
+
+  public void setDatabaseAndTableName(String databaseName, String tableName) {
+    this.databaseName = databaseName;
+    this.tableName = tableName;
   }
 
   public int size() {
@@ -24,20 +35,20 @@ public final class BPlusTree<K extends Comparable<K>, V>
   }
 
   public void update(K key, V value) {
-    root.remove(key);
-    root.put(key, value);
+    root.remove(key, getIdentifier());
+    root.put(key, value, getIdentifier());
   }
 
   public void put(K key, V value) {
     if (key == null) throw new IllegalArgumentException("argument key to put() is null");
-    root.put(key, value);
+    root.put(key, value, getIdentifier());
     size++;
     checkRoot();
   }
 
   public void remove(K key) {
     if (key == null) throw new IllegalArgumentException("argument key to remove() is null");
-    root.remove(key);
+    root.remove(key, getIdentifier());
     size--;
     if (root instanceof BPlusTreeInternalNode && root.size() == 0) {
       root = ((BPlusTreeInternalNode<K, V>) root).children.get(0);
@@ -51,7 +62,7 @@ public final class BPlusTree<K extends Comparable<K>, V>
 
   private void checkRoot() {
     if (root.isOverFlow()) {
-      BPlusTreeNode<K, V> newSiblingNode = root.split();
+      BPlusTreeNode<K, V> newSiblingNode = root.split(getIdentifier());
       BPlusTreeInternalNode<K, V> newRoot = new BPlusTreeInternalNode<>(1);
       newRoot.keys.set(0, newSiblingNode.getFirstLeafKey());
       newRoot.children.set(0, root);

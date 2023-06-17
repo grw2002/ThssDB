@@ -13,8 +13,11 @@ public class MetaInfo2 {
     return columns;
   }
 
-  public MetaInfo2(Column[] columns) {
-    this.columns = new ArrayList<>(Arrays.asList(columns));
+  public MetaInfo2(List<Column> columns) {
+    this.columns = new ArrayList<>();
+    for (Column column : columns) {
+      this.columns.add(column.clone());
+    }
   }
 
   protected void updateColumnIndex() {

@@ -48,7 +48,7 @@ public class CreateTablePlan extends LogicalPlan {
 
   public int getPrimaryIndex() {
     for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getPrimary() == 1) {
+      if (columns.get(i).isPrimary()) {
         return i;
       }
     }

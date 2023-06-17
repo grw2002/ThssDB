@@ -2,21 +2,29 @@ package cn.edu.thssdb.index;
 
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
+import cn.edu.thssdb.storage.Page;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.UUID;
 
 public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode<K, V>
     implements Serializable {
 
-  ArrayList<V> values;
+  //  ArrayList<V> values;
+  Page<V> values;
   private BPlusTreeLeafNode<K, V> next;
 
-  BPlusTreeLeafNode(int size) {
+  BPlusTreeLeafNode(int size, String identifier) {
     keys = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));
-    values = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));
+    //    values = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));
+    values =
+        new Page<>(
+            Collections.nCopies((int) (1.5 * Global.fanout) + 1, null),
+            identifier,
+            UUID.randomUUID());
     nodeSize = size;
   }
 
@@ -42,7 +50,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
   }
 
   @Override
-  void put(K key, V value) {
+  void put(K key, V value, String identifier) {
     int index = binarySearch(key);
     int valueIndex = index >= 0 ? index : -index - 1;
     if (index >= 0) throw new DuplicateKeyException();
@@ -53,7 +61,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
   }
 
   @Override
-  void remove(K key) {
+  void remove(K key, String identifier) {
     int index = binarySearch(key);
     if (index >= 0) {
       valuesRemove(index);
@@ -67,10 +75,10 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
   }
 
   @Override
-  BPlusTreeNode<K, V> split() {
+  BPlusTreeNode<K, V> split(String identifier) {
     int from = (size() + 1) / 2;
     int to = size();
-    BPlusTreeLeafNode<K, V> newSiblingNode = new BPlusTreeLeafNode<>(to - from);
+    BPlusTreeLeafNode<K, V> newSiblingNode = new BPlusTreeLeafNode<>(to - from, identifier);
     for (int i = 0; i < to - from; i++) {
       newSiblingNode.keys.set(i, keys.get(i + from));
       newSiblingNode.values.set(i, values.get(i + from));

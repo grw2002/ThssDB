@@ -3,9 +3,12 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.ColumnNotExistException;
 import cn.edu.thssdb.exception.DataFileErrorException;
 import cn.edu.thssdb.exception.NotNullException;
+import cn.edu.thssdb.exception.TypeNotMatchException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.index.BPlusTreeIterator;
 import cn.edu.thssdb.query.QueryTable2;
+import cn.edu.thssdb.sql.SQLParser;
+import cn.edu.thssdb.storage.PageRow;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Pair;
 
@@ -19,28 +22,32 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class Table extends QueryTable2 {
+public class Table extends QueryTable2 implements Serializable {
   ReentrantReadWriteLock lock;
+  Database database;
   public String databaseName;
   private int primaryIndex;
-  private String tableName;
-  public transient BPlusTree<Entry, Row> index;
+  private final String tableName;
+  // Pair<pageId, offset>
+  public transient BPlusTree<Entry, PageRow> index;
 
   public String getTableName() {
     return tableName;
   }
 
-  public Table(String databaseName, String tableName, Column[] columns) {
+  public Table(Database database, String tableName, List<Column> columns) {
     // TODO
     super(tableName, columns); // 调用父类构造函数
-    this.databaseName = databaseName;
+    //    System.out.println("Mark "+tableName+" "+columns.toString());
+    this.database = database;
+    this.databaseName = database.getName();
     this.tableName = tableName;
-    this.index = new BPlusTree<>();
-    for (int i = 0; i < columns.length; i++) {
-      if (columns[i].getPrimary() != 0) {
+    this.index = new BPlusTree<>(databaseName, tableName);
+    for (int i = 0; i < columns.size(); i++) {
+      if (this.columns.get(i).isPrimary()) {
         primaryIndex = i;
       }
-      columns[i].setTable(this);
+      this.columns.get(i).setTable(this);
     }
   }
 
@@ -86,7 +93,7 @@ public class Table extends QueryTable2 {
     try {
       if (Files.size(loadPath) == 0) {
         System.out.println("Empty data file. No existing index.");
-        this.index = new BPlusTree<>(); // 如果文件为空，初始化 index 为一个空的 BPlusTree
+        this.index = new BPlusTree<>(databaseName, tableName); // 如果文件为空，初始化 index 为一个空的 BPlusTree
         return;
       }
     } catch (IOException e) {
@@ -101,14 +108,15 @@ public class Table extends QueryTable2 {
       Object fileContent = ois.readObject();
       if (fileContent != null) {
         if (fileContent instanceof BPlusTree) {
-          this.index = (BPlusTree<Entry, Row>) fileContent;
+          this.index = (BPlusTree<Entry, PageRow>) fileContent;
+          this.index.setDatabaseAndTableName(databaseName, tableName);
           System.out.println("loading...");
         } else {
           System.out.println("Invalid data file content. Expected BPlusTree<Entry, Row>.");
         }
       } else {
         System.out.println("Empty data file. Initializing index as an empty BPlusTree.");
-        this.index = new BPlusTree<>();
+        this.index = new BPlusTree<>(databaseName, tableName);
       }
       System.out.println("loaded");
     } catch (IOException | ClassNotFoundException e) {
@@ -143,13 +151,52 @@ public class Table extends QueryTable2 {
     }
   }
 
+  public static Entry entryParse(SQLParser.LiteralValueContext literal, Column column) {
+    boolean notNull = column.isNotNull();
+    if (literal.K_NULL() != null) {
+      if (notNull) throw new NotNullException(column.getName());
+      return new Entry(null);
+    }
+
+    switch (column.getType()) {
+      case INT:
+      case LONG:
+      case FLOAT:
+      case DOUBLE:
+        if (literal.NUMERIC_LITERAL() != null) {
+          throw new TypeNotMatchException(column.getName());
+        }
+        break;
+      case STRING:
+        if (literal.STRING_LITERAL() == null) {
+          throw new TypeNotMatchException(column.getName());
+        }
+        break;
+    }
+    String value = literal.getText();
+    switch (column.getType()) {
+      case INT:
+        return new Entry(Integer.valueOf(value));
+      case LONG:
+        return new Entry(Long.valueOf(value));
+      case FLOAT:
+        return new Entry(Float.valueOf(value));
+      case DOUBLE:
+        return new Entry(Double.valueOf(value));
+      case STRING:
+        return new Entry(value.substring(1, value.length() - 1));
+      default:
+        throw new RuntimeException("Unknown column type.");
+    }
+  }
+
   // util: get all rows
   public List<String> getAllRowsInfo() {
     List<String> allRows = new ArrayList<>();
 
-    BPlusTreeIterator<Entry, Row> iter = index.iterator();
+    BPlusTreeIterator<Entry, PageRow> iter = index.iterator();
     while (iter.hasNext()) {
-      Pair<Entry, Row> pair = iter.next();
+      Pair<Entry, PageRow> pair = iter.next();
       Row row = (Row) pair.right;
       allRows.add(row.toString());
     }
@@ -181,10 +228,10 @@ public class Table extends QueryTable2 {
     } else {
       if (this.index.size() > 0) {
         Row row;
-        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+        Iterator<Pair<Entry, PageRow>> iterator = this.index.iterator();
 
         while (iterator.hasNext()) {
-          Pair<Entry, Row> pair = iterator.next();
+          Pair<Entry, PageRow> pair = iterator.next();
           row = pair.right;
           row.dropEntry(columnIndex); // 增加一个新的Entry
         }
@@ -194,7 +241,7 @@ public class Table extends QueryTable2 {
 
   // util: initTransientFields BPlusTree & Map
   public void initTransientFields() {
-    this.index = new BPlusTree<>();
+    this.index = new BPlusTree<>(databaseName, tableName);
     this.columnIndex = new HashMap<>();
     updateColumnIndex();
   }
@@ -207,7 +254,7 @@ public class Table extends QueryTable2 {
     for (Column column : columns) {
       if (column.getName().equals(columnName)) {
         column.setType(newColumnType);
-        notNull = column.getNotNull();
+        notNull = column.isNotNull();
         columnIndex++;
         findFlag = true;
         break;
@@ -219,15 +266,15 @@ public class Table extends QueryTable2 {
     } else {
       if (this.index.size() > 0) {
         Row row;
-        Iterator<Pair<Entry, Row>> iterator = this.index.iterator();
+        Iterator<Pair<Entry, PageRow>> iterator = this.index.iterator();
         Entry oldEntry;
         Entry newEntry;
         boolean ifError = false;
 
         while (iterator.hasNext()) {
-          Pair<Entry, Row> pair = iterator.next();
+          Pair<Entry, PageRow> pair = iterator.next();
           row = pair.right;
-          oldEntry = row.entries.get(columnIndex);
+          oldEntry = row.getEntries().get(columnIndex);
           try {
             newEntry =
                 entryParse(
@@ -274,9 +321,9 @@ public class Table extends QueryTable2 {
 
   @Override
   public void insert(Row row) {
-    Entry primaryKey = row.entries.get(primaryIndex);
+    Entry primaryKey = row.getEntries().get(primaryIndex);
     if (!index.contains(primaryKey)) {
-      index.put(row.entries.get(primaryIndex), row);
+      index.put(row.getEntries().get(primaryIndex), new PageRow(row));
     }
   }
 
@@ -310,8 +357,8 @@ public class Table extends QueryTable2 {
                       valueList.get(valueIndex),
                       column.getName(),
                       column.getType(),
-                      column.getNotNull()));
-          if (column.getPrimary() == 1) {
+                      column.isNotNull()));
+          if (column.isPrimary()) {
             Entry primaryKey = entries[i];
             // 检查主键是否已经存在
             if (index.contains(primaryKey)) {
@@ -321,7 +368,7 @@ public class Table extends QueryTable2 {
           valueIndex++;
         } else {
           // The column is not specified, use a default value
-          if (findColumnByName(columnName).getNotNull()) {
+          if (findColumnByName(columnName).isNotNull()) {
             throw new RuntimeException("Field '" + columnName + "' cannot be null");
           }
           switch (column.getType()) {
@@ -368,9 +415,9 @@ public class Table extends QueryTable2 {
     List<Entry> toDelete = new ArrayList<>();
 
     // Iterate over all rows
-    BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+    BPlusTreeIterator<Entry, PageRow> iterator = index.iterator();
     while (iterator.hasNext()) {
-      Pair<Entry, Row> pair = iterator.next();
+      Pair<Entry, PageRow> pair = iterator.next();
       Row row = pair.right;
 
       // Get the value in the column for this row
@@ -473,9 +520,9 @@ public class Table extends QueryTable2 {
       }
 
       // Iterate over all rows
-      BPlusTreeIterator<Entry, Row> iterator = index.iterator();
+      BPlusTreeIterator<Entry, PageRow> iterator = index.iterator();
       while (iterator.hasNext()) {
-        Pair<Entry, Row> pair = iterator.next();
+        Pair<Entry, PageRow> pair = iterator.next();
         Row row = pair.right;
 
         // Get the value in the column for this row
@@ -527,7 +574,7 @@ public class Table extends QueryTable2 {
   public void update(Entry[] primaryKeys, int columnIndexToUpdate, Entry newValue) {
     // TODO
     for (Entry primaryKey : primaryKeys) {
-      index.get(primaryKey).entries.set(columnIndexToUpdate, newValue);
+      index.get(primaryKey).getEntries().set(columnIndexToUpdate, newValue);
     }
   }
 
@@ -540,8 +587,8 @@ public class Table extends QueryTable2 {
     return null;
   }
 
-  private static class TableIterator implements Iterator<Row> {
-    private final Iterator<Pair<Entry, Row>> iterator;
+  private class TableIterator implements Iterator<Row> {
+    private final Iterator<Pair<Entry, PageRow>> iterator;
 
     public TableIterator(Table table) {
       this.iterator = table.index.iterator();

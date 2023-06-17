@@ -3,6 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.storage.Storage;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -19,15 +20,22 @@ public class Manager {
   private HashMap<String, Database> databases;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private Database currentDatabase;
+  private final Storage storage;
 
   /* Persistence
    * saveMetaDataToFile & loadMetaDataFromFile
    */
   public void saveTableDataToFile() {
-    for (Table table : currentDatabase.getTables()) {
-      // 保存每个表的数据
-      table.saveTableDataToFile();
+    for (Database database : databases.values()) {
+      for (Table table : database.getTables()) {
+        // 保存每个表的数据
+        table.saveTableDataToFile();
+      }
     }
+  }
+
+  public Storage getStorage() {
+    return storage;
   }
 
   public void saveMetaDataToFile(String filePath) {
@@ -100,6 +108,7 @@ public class Manager {
     // TODO
     databases = new HashMap<>();
     currentDatabase = null;
+    this.storage = new Storage();
   }
 
   public Database getCurrentDatabase() {
@@ -171,8 +180,7 @@ public class Manager {
       throw new RuntimeException("No database selected");
     }
 
-    Column[] columnArray = columns.toArray(new Column[columns.size()]);
-    currentDatabase.create(tableName, columnArray);
+    currentDatabase.create(tableName, columns);
   }
 
   public void dropTable(String tableName, boolean ifExists) {
@@ -277,6 +285,13 @@ public class Manager {
     table.loadTableDataFromFile();
     // Call the new update method in Table class
     table.updateWithConditions(columnName, newValue, conditions);
+  }
+
+  public Database findDatabaseByName(String databaseName) throws RuntimeException {
+    if (databases.containsKey(databaseName)) {
+      return databases.get(databaseName);
+    }
+    throw new DatabaseNotExistException();
   }
 
   private static class ManagerHolder {

@@ -23,34 +23,48 @@ import cn.edu.thssdb.sql.SQLParser;
 
 import java.util.List;
 
-public class SelectPlan2 extends LogicalPlan {
+public class SimpleJoinPlan extends LogicalPlan {
 
-  List<SQLParser.ResultColumnContext> resultColumns;
+  private List<SQLParser.ResultColumnContext> resultColumns;
 
-  List<SQLParser.TableQueryContext> tableQuerys;
+  private String tableL, tableR;
 
-  SQLParser.MultipleConditionContext conditions;
+  private SQLParser.ConditionContext joinCondition;
+
+  private SQLParser.ConditionContext whereCondition;
 
   public List<SQLParser.ResultColumnContext> getResultColumns() {
     return resultColumns;
   }
 
-  public List<SQLParser.TableQueryContext> getTableQuerys() {
-    return tableQuerys;
+  public String getTableL() {
+    return tableL;
   }
 
-  public SQLParser.MultipleConditionContext getMultipleCondition() {
-    return conditions;
+  public String getTableR() {
+    return tableR;
   }
 
-  public SelectPlan2(
+  public SQLParser.ConditionContext getJoinCondition() {
+    return joinCondition;
+  }
+
+  public SQLParser.ConditionContext getWhereCondition() {
+    return whereCondition;
+  }
+
+  public SimpleJoinPlan(
       List<SQLParser.ResultColumnContext> resultColumnContext,
-      List<SQLParser.TableQueryContext> tableQueryContext,
-      SQLParser.MultipleConditionContext multipleConditionContext) {
-    super(LogicalPlanType.SELECT_FROM_TABLE);
+      String tableL,
+      String tableR,
+      SQLParser.ConditionContext joinCondition,
+      SQLParser.ConditionContext whereCondition) {
+    super(LogicalPlanType.SIMPLE_SELECT_JOIN_TABLE);
     this.resultColumns = resultColumnContext;
-    this.tableQuerys = tableQueryContext;
-    this.conditions = multipleConditionContext;
+    this.tableL = tableL;
+    this.tableR = tableR;
+    this.joinCondition = joinCondition;
+    this.whereCondition = whereCondition;
   }
 
   @Override
@@ -59,11 +73,9 @@ public class SelectPlan2 extends LogicalPlan {
     for (SQLParser.ResultColumnContext resultColumn : resultColumns) {
       res.append(resultColumn.getText());
     }
-    res.append("\nTableQuery:");
-    for (SQLParser.TableQueryContext tableQuery : tableQuerys) {
-      res.append(tableQuery.getText());
-    }
-    res.append("\nMultipleCondition:").append(conditions == null ? "" : conditions.getText());
+    res.append("\nTableQuery:" + tableL + " " + tableR);
+    res.append("\njoinConditions:").append(joinCondition == null ? "" : joinCondition.getText());
+    res.append("\nwhereConditions:").append(whereCondition == null ? "" : whereCondition.getText());
     return "SelectPlan{\n" + res.toString() + "\n}";
   }
 }

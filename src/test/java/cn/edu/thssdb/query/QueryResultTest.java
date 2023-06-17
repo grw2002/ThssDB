@@ -12,6 +12,7 @@ import cn.edu.thssdb.utils.StatusUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -21,9 +22,9 @@ public class QueryResultTest {
 
   static final Column[] columns1 =
       new Column[] {
-        new Column("id", ColumnType.INT, 1, true, 0),
-        new Column("name", ColumnType.STRING, 0, false, 128),
-        new Column("age", ColumnType.INT, 0, false, 0),
+        new Column("id", ColumnType.INT, true, true, 0),
+        new Column("name", ColumnType.STRING, false, false, 128),
+        new Column("age", ColumnType.INT, false, false, 0),
       };
 
   static final Row[] rows1 =
@@ -39,9 +40,9 @@ public class QueryResultTest {
 
   static final Column[] columns2 =
       new Column[] {
-        new Column("id", ColumnType.INT, 1, true, 0),
-        new Column("location", ColumnType.STRING, 0, false, 128),
-        new Column("phone", ColumnType.INT, 0, false, 0),
+        new Column("id", ColumnType.INT, true, true, 0),
+        new Column("location", ColumnType.STRING, false, false, 128),
+        new Column("phone", ColumnType.INT, false, false, 0),
       };
   static final Row[] rows2 =
       new Row[] {
@@ -68,11 +69,11 @@ public class QueryResultTest {
     if (db.findTableByName("table2") != null) {
       db.drop("table2");
     }
-    db.create("table1", columns1);
+    db.create("table1", Arrays.asList(columns1));
     Table table1 = db.findTableByName("table1");
     table1.insert(rows1);
 
-    db.create("table2", columns2);
+    db.create("table2", Arrays.asList(columns2));
     Table table2 = db.findTableByName("table2");
     table2.insert(rows2);
   }
