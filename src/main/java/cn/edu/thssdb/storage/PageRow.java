@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class PageRow extends Row {
+public class PageRow extends Row implements Cloneable<PageRow> {
 
   public PageRow() {
     super();
@@ -62,5 +62,14 @@ public class PageRow extends Row {
 
   public void updateEntry(int index, Entry newValue) {
     this.entries.set(index, newValue);
+  }
+
+  @Override
+  public PageRow clone() {
+    PageRow row = new PageRow();
+    for (Entry entry : entries) {
+      row.entries.add(new Entry(entry.value));
+    }
+    return row;
   }
 }

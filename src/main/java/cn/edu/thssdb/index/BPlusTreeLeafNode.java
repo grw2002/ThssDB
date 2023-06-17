@@ -2,6 +2,7 @@ package cn.edu.thssdb.index;
 
 import cn.edu.thssdb.exception.DuplicateKeyException;
 import cn.edu.thssdb.exception.KeyNotExistException;
+import cn.edu.thssdb.storage.Cloneable;
 import cn.edu.thssdb.storage.Page;
 import cn.edu.thssdb.utils.Global;
 
@@ -10,8 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 
-public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode<K, V>
-    implements Serializable {
+public class BPlusTreeLeafNode<K extends Comparable<K>, V extends Cloneable<V>>
+    extends BPlusTreeNode<K, V> implements Serializable {
 
   //  ArrayList<V> values;
   Page<V> values;
@@ -21,7 +22,7 @@ public class BPlusTreeLeafNode<K extends Comparable<K>, V> extends BPlusTreeNode
     keys = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));
     //    values = new ArrayList<>(Collections.nCopies((int) (1.5 * Global.fanout) + 1, null));
     values =
-        new Page<>(
+        new Page<V>(
             Collections.nCopies((int) (1.5 * Global.fanout) + 1, null),
             identifier,
             UUID.randomUUID());
