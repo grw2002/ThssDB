@@ -43,3 +43,4 @@ java/build/**
 *.data
 
 # wal log file
+*.log
