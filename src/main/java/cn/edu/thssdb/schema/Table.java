@@ -25,6 +25,9 @@ public class Table extends QueryTable2 {
   private int primaryIndex;
   private String tableName;
   public transient BPlusTree<Entry, Row> index;
+  public ArrayList<Long> sLockList;
+  public ArrayList<Long> xLockList;
+  private int lockStatus = 0; //
 
   public String getTableName() {
     return tableName;
@@ -36,6 +39,8 @@ public class Table extends QueryTable2 {
     this.databaseName = databaseName;
     this.tableName = tableName;
     this.index = new BPlusTree<>();
+    this.sLockList = new ArrayList<>();
+    this.xLockList = new ArrayList<>();
     for (int i = 0; i < columns.length; i++) {
       if (columns[i].getPrimary() != 0) {
         primaryIndex = i;
@@ -54,6 +59,68 @@ public class Table extends QueryTable2 {
   /*
    utils begin
   */
+
+  public int getSLock(long session) {
+    // -1: fail, 1: success, 0: success but no lock added
+    int value = 0;
+    if (lockStatus == 0) {
+      sLockList.add(session);
+      lockStatus = 1;
+      value = 1;
+    } else if (lockStatus == 1) {
+      if (sLockList.contains(session)) { // lock->read
+        value = 0;
+      } else {
+        sLockList.add(session);
+        lockStatus = 1;
+        value = 1;
+      }
+    } else if (lockStatus == 2) {
+      if (xLockList.contains(session)) {
+        value = 0;
+      } else {
+        value = -1;
+      }
+    }
+    return value;
+  }
+
+  public int getXLock(long session) {
+    // 返-1: fail, 1: success, 0: success but no lock added
+    int value = 0;
+    if (lockStatus == 0) {
+      xLockList.add(session);
+      lockStatus = 2;
+      value = 1;
+    } else if (lockStatus == 1) {
+      value = -1;
+    } else if (lockStatus == 2) {
+      if (xLockList.contains(session)) {
+        value = 0;
+      } else {
+        value = -1;
+      }
+    }
+    return value;
+  }
+
+  public void freeSLock(long session) {
+    if (sLockList.contains(session)) {
+      sLockList.remove(session);
+      if (sLockList.size() == 0) {
+        lockStatus = 0;
+      } else {
+        lockStatus = 1;
+      }
+    }
+  }
+
+  public void freeXLock(long session) {
+    if (xLockList.contains(session)) {
+      xLockList.remove(session);
+      lockStatus = 0;
+    }
+  }
 
   // util: save index into file
   public void saveTableDataToFile() {

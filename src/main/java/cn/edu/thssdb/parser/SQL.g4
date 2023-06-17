@@ -30,7 +30,11 @@ sqlStmt :
     | showTableStmt
     | showTablesStmt
     | quitStmt
-    | updateStmt ;
+    | updateStmt
+    | beginTransStmt
+    | commitStmt
+    | autoBeginStmt
+    | autoCommitStmt;
 
 createDbStmt :
     K_CREATE K_DATABASE databaseName ;
@@ -105,6 +109,18 @@ dropViewStmt :
 updateStmt :
     K_UPDATE tableName
         K_SET columnName '=' expression ( K_WHERE multipleCondition )? ;
+
+autoBeginStmt:
+    K_AUTO K_BEGIN K_TRANSACTION;
+
+autoCommitStmt:
+    K_AUTO K_COMMIT;
+
+beginTransStmt :
+    K_BEGIN K_TRANSACTION;
+
+commitStmt:
+    K_COMMIT;
 
 columnDef :
     columnName typeName columnConstraint* ;
@@ -208,8 +224,11 @@ K_ADD : A D D;
 K_ALL : A L L;
 K_ALTER: A L T E R;
 K_AS : A S;
+K_AUTO : A U T O;
+K_BEGIN : B E G I N;
 K_BY : B Y;
 K_COLUMN : C O L U M N;
+K_COMMIT : C O M M I T;
 K_CONSTRAINT : C O N S T R A I N T;
 K_CREATE : C R E A T E;
 K_DATABASE : D A T A B A S E;
@@ -243,6 +262,7 @@ K_SHOW : S H O W;
 K_TABLE : T A B L E;
 K_TABLES : T A B L E S;
 K_TO : T O;
+K_TRANSACTION: T R A N S A C T I O N;
 K_TYPE : T Y P E;
 K_UPDATE : U P D A T E;
 K_USE : U S E;

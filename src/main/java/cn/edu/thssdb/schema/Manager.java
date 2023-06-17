@@ -20,6 +20,11 @@ public class Manager {
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private boolean inTransaction = false;
   private Database currentDatabase;
+  public ArrayList<Long> transactionSessions;
+  public ArrayList<Long> lockQueue;
+  public HashMap<Long, Boolean> autoExecute;
+  public HashMap<Long, ArrayList<String>> xLockHash;
+  public HashMap<Long, ArrayList<String>> sLockHash;
 
   /* Lock and unlock
    */
@@ -114,6 +119,11 @@ public class Manager {
   public Manager() {
     // TODO
     databases = new HashMap<>();
+    autoExecute = new HashMap<>();
+    xLockHash = new HashMap<>();
+    sLockHash = new HashMap<>();
+    transactionSessions = new ArrayList<>();
+    lockQueue = new ArrayList<>();
     currentDatabase = null;
   }
 

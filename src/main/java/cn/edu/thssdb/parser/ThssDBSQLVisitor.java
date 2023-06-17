@@ -335,5 +335,12 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
     return new SelectPlan2(ctx.resultColumn(), ctx.tableQuery(), ctx.multipleCondition());
   }
 
+  public LogicalPlan visitBeginTransStmt(SQLParser.BeginTransStmtContext ctx) {
+    return new BeginTransactionPlan();
+  }
+
+  public LogicalPlan visitCommitStmt(SQLParser.CommitStmtContext ctx) {
+    return new CommitPlan();
+  }
   // TODO: parser to more logical plan
 }

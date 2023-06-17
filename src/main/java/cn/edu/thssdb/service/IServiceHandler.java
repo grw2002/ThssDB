@@ -1,5 +1,7 @@
 package cn.edu.thssdb.service;
 
+import cn.edu.thssdb.exception.LockQueueSleepException;
+import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
@@ -16,16 +18,16 @@ import cn.edu.thssdb.rpc.thrift.GetTimeResp;
 import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
 import cn.edu.thssdb.schema.Column;
+import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
+import cn.edu.thssdb.schema.Table;
+import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -34,10 +36,70 @@ public class IServiceHandler implements IService.Iface {
   private static final AtomicInteger sessionCnt = new AtomicInteger(0);
 
   private Manager manager;
+  private final String[] autoBeginStmt = {"insert", "delete", "update", "select", "alter"};
+  private final String[] walStmt = {
+    "insert", "delete", "update", "begin", "commit", "alter", "commit;"
+  };
 
   public IServiceHandler() {
     super();
     manager = Manager.getInstance();
+  }
+
+  private void execAutoCommit(long session_ID) {
+    // System.out.println("entering check auto commit status: " + manager.auto_dict.get(sessionID));
+    if (manager.autoExecute.get(session_ID)) {
+      autoCommit(session_ID);
+    }
+  }
+
+  public ExecuteStatementResp autoBegin(long session_ID) {
+    try {
+      if (!manager.transactionSessions.contains(session_ID)) {
+        manager.transactionSessions.add(session_ID);
+        ArrayList<String> sLock = new ArrayList<>();
+        ArrayList<String> xLock = new ArrayList<>();
+        manager.xLockHash.put(session_ID, sLock);
+        manager.sLockHash.put(session_ID, xLock);
+      } else {
+        return new ExecuteStatementResp(StatusUtil.fail("Session already in transaction"), false);
+      }
+    } catch (Exception e) {
+      return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+    }
+    return new ExecuteStatementResp(
+        StatusUtil.success("Begin AutoTransaction: " + String.valueOf(session_ID)), false);
+  }
+
+  public ExecuteStatementResp autoCommit(long session_ID) {
+    try {
+      if (manager.transactionSessions.contains(session_ID)) {
+        Database database = manager.getCurrentDatabase();
+        manager.transactionSessions.remove(session_ID);
+
+        ArrayList<String> xTableList = manager.xLockHash.get(session_ID);
+        for (String tableName : xTableList) {
+          Table table = database.findTableByName(tableName);
+          table.freeXLock(session_ID);
+        }
+        xTableList.clear();
+        manager.xLockHash.put(session_ID, xTableList);
+
+        ArrayList<String> sTableList = manager.sLockHash.get(session_ID);
+        for (String tableName : sTableList) {
+          Table table = database.findTableByName(tableName);
+          table.freeSLock(session_ID);
+        }
+        sTableList.clear();
+        manager.sLockHash.put(session_ID, sTableList);
+      } else {
+        return new ExecuteStatementResp(
+            StatusUtil.fail("Failed to auto commit, not transaction"), false);
+      }
+    } catch (Exception e) {
+      return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+    }
+    return new ExecuteStatementResp(StatusUtil.success("Transaction AutoCommitted"), false);
   }
 
   @Override
@@ -66,6 +128,19 @@ public class IServiceHandler implements IService.Iface {
     if (req.getSessionId() < 0) {
       return new ExecuteStatementResp(
           StatusUtil.fail("You are not connected. Please connect first."), false);
+    }
+
+    System.out.println("execute" + req.getSessionId() + req.statement);
+    long session_ID = req.getSessionId();
+    String stmt = req.getStatement().split("\\s+")[0];
+    System.out.println("stmt: " + stmt);
+
+    if (!manager.transactionSessions.contains(session_ID)
+        && Arrays.asList(autoBeginStmt).contains(stmt.toLowerCase())) {
+      manager.autoExecute.put(session_ID, true);
+      autoBegin(session_ID);
+    } else {
+      manager.autoExecute.put(session_ID, false);
     }
 
     // TODO: implement execution logic
@@ -145,8 +220,11 @@ public class IServiceHandler implements IService.Iface {
           System.out.println("[DEBUG] " + plan);
           DropTablePlan dropTablePlan = (DropTablePlan) plan;
           manager.dropTable(dropTablePlan.getTableName(), dropTablePlan.isIfExists());
+
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
       case SHOW_TABLE:
@@ -178,6 +256,52 @@ public class IServiceHandler implements IService.Iface {
         try {
           System.out.println("[DEBUG] " + plan);
           AlterTablePlan alterTablePlan = (AlterTablePlan) plan;
+
+          String tableName = alterTablePlan.getTableName();
+          Table table = manager.getCurrentDatabase().findTableByName(tableName);
+
+          while (true) {
+            if (table == null) {
+              autoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new TableNotExistException(tableName).getMessage()), false);
+            }
+            if (!manager.lockQueue.contains(session_ID)) {
+              int xLock = table.getXLock(session_ID);
+              if (xLock != -1) {
+                if (xLock == 1) {
+                  ArrayList<String> temp = manager.xLockHash.get(session_ID);
+                  temp.add(tableName);
+                  manager.xLockHash.put(session_ID, temp);
+                }
+                break;
+              } else {
+                manager.lockQueue.add(session_ID);
+              }
+            } else {
+              if (manager.lockQueue.get(0) == session_ID) {
+                int xLock_queue = table.getXLock(session_ID);
+                if (xLock_queue != -1) {
+                  if (xLock_queue == 1) {
+                    ArrayList<String> tmp = manager.xLockHash.get(session_ID);
+                    tmp.add(tableName);
+                    manager.xLockHash.put(session_ID, tmp);
+                  }
+                  manager.lockQueue.remove(0);
+                  break;
+                }
+              }
+            }
+
+            try {
+              Thread.sleep(200);
+            } catch (Exception e) {
+              execAutoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new LockQueueSleepException().getMessage()), false);
+            }
+          }
+
           switch (alterTablePlan.getOperation()) {
             case ADD_COLUMN:
               manager.addColumn(alterTablePlan.getTableName(), alterTablePlan.getColumn());
@@ -208,8 +332,10 @@ public class IServiceHandler implements IService.Iface {
               // alterTablePlan.getConstraint());
               break;
           }
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
 
@@ -217,10 +343,58 @@ public class IServiceHandler implements IService.Iface {
         try {
           System.out.println("[DEBUG] " + plan);
           InsertPlan insertPlan = (InsertPlan) plan;
+
+          String tableName = insertPlan.getTableName();
+          Table table = manager.getCurrentDatabase().findTableByName(tableName);
+
+          while (true) {
+            if (table == null) {
+              autoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new TableNotExistException(tableName).getMessage()), false);
+            }
+            if (!manager.lockQueue.contains(session_ID)) {
+              int xLock = table.getXLock(session_ID);
+              if (xLock != -1) {
+                if (xLock == 1) {
+                  ArrayList<String> temp = manager.xLockHash.get(session_ID);
+                  temp.add(tableName);
+                  manager.xLockHash.put(session_ID, temp);
+                }
+                break;
+              } else {
+                manager.lockQueue.add(session_ID);
+              }
+            } else {
+              if (manager.lockQueue.get(0) == session_ID) {
+                int xLock_queue = table.getXLock(session_ID);
+                if (xLock_queue != -1) {
+                  if (xLock_queue == 1) {
+                    ArrayList<String> tmp = manager.xLockHash.get(session_ID);
+                    tmp.add(tableName);
+                    manager.xLockHash.put(session_ID, tmp);
+                  }
+                  manager.lockQueue.remove(0);
+                  break;
+                }
+              }
+            }
+
+            try {
+              Thread.sleep(200);
+            } catch (Exception e) {
+              execAutoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new LockQueueSleepException().getMessage()), false);
+            }
+          }
+
           manager.insertIntoTable(
               insertPlan.getTableName(), insertPlan.getColumnNames(), insertPlan.getValues());
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
       case DELETE_FROM_TABLE:
@@ -229,10 +403,56 @@ public class IServiceHandler implements IService.Iface {
           DeletePlan deletePlan = (DeletePlan) plan;
           String tableName = deletePlan.getTableName();
           List<String> conditions = deletePlan.getConditions();
+          Table table = manager.getCurrentDatabase().findTableByName(tableName);
+
+          while (true) {
+            if (table == null) {
+              autoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new TableNotExistException(tableName).getMessage()), false);
+            }
+            if (!manager.lockQueue.contains(session_ID)) {
+              int xLock = table.getXLock(session_ID);
+              if (xLock != -1) {
+                if (xLock == 1) {
+                  ArrayList<String> temp = manager.xLockHash.get(session_ID);
+                  temp.add(tableName);
+                  manager.xLockHash.put(session_ID, temp);
+                }
+                break;
+              } else {
+                manager.lockQueue.add(session_ID);
+              }
+            } else {
+              if (manager.lockQueue.get(0) == session_ID) {
+                int xLock_queue = table.getXLock(session_ID);
+                if (xLock_queue != -1) {
+                  if (xLock_queue == 1) {
+                    ArrayList<String> tmp = manager.xLockHash.get(session_ID);
+                    tmp.add(tableName);
+                    manager.xLockHash.put(session_ID, tmp);
+                  }
+                  manager.lockQueue.remove(0);
+                  break;
+                }
+              }
+            }
+
+            try {
+              Thread.sleep(200);
+            } catch (Exception e) {
+              execAutoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new LockQueueSleepException().getMessage()), false);
+            }
+          }
 
           manager.deleteFromTable(tableName, conditions);
+
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
       case UPDATE_TABLE:
@@ -243,16 +463,136 @@ public class IServiceHandler implements IService.Iface {
           String columnName = updatePlan.getColumnName();
           String newValue = updatePlan.getNewValue();
           List<String> conditions = updatePlan.getConditions();
+          Table table = manager.getCurrentDatabase().findTableByName(tableName);
+
+          while (true) {
+            if (table == null) {
+              autoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new TableNotExistException(tableName).getMessage()), false);
+            }
+            if (!manager.lockQueue.contains(session_ID)) {
+              int xLock = table.getXLock(session_ID);
+              if (xLock != -1) {
+                if (xLock == 1) {
+                  ArrayList<String> temp = manager.xLockHash.get(session_ID);
+                  temp.add(tableName);
+                  manager.xLockHash.put(session_ID, temp);
+                }
+                break;
+              } else {
+                manager.lockQueue.add(session_ID);
+              }
+            } else {
+              if (manager.lockQueue.get(0) == session_ID) {
+                int xLock_queue = table.getXLock(session_ID);
+                if (xLock_queue != -1) {
+                  if (xLock_queue == 1) {
+                    ArrayList<String> tmp = manager.xLockHash.get(session_ID);
+                    tmp.add(tableName);
+                    manager.xLockHash.put(session_ID, tmp);
+                  }
+                  manager.lockQueue.remove(0);
+                  break;
+                }
+              }
+            }
+
+            try {
+              Thread.sleep(200);
+            } catch (Exception e) {
+              execAutoCommit(session_ID);
+              return new ExecuteStatementResp(
+                  StatusUtil.fail(new LockQueueSleepException().getMessage()), false);
+            }
+          }
 
           manager.updateTable(tableName, columnName, newValue, conditions);
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.success(), false);
         } catch (Exception e) {
+          execAutoCommit(session_ID);
           return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         }
-
       case SELECT_FROM_TABLE:
         System.out.println("[DEBUG] " + plan);
         SelectPlan2 selectPlan = ((SelectPlan2) plan);
+
+        List<String> tableNames = new ArrayList<>();
+        for (SQLParser.TableQueryContext tableQuery : selectPlan.getTableQuerys()) {
+          // 获取当前 TableQueryContext 对象中的所有 TableNameContext
+          List<SQLParser.TableNameContext> queryTableNames = tableQuery.tableName();
+
+          // 遍历 TableNameContext 列表
+          for (SQLParser.TableNameContext tableName : queryTableNames) {
+            // 获取表名
+            tableNames.add(tableName.getText());
+          }
+        }
+
+        while (true) {
+          if (!manager.lockQueue.contains(session_ID)) {
+            ArrayList<Integer> lockList = new ArrayList<>();
+            for (String tableName : tableNames) {
+              Table table = manager.getCurrentDatabase().findTableByName(tableName);
+              if (table == null) {
+                autoCommit(session_ID);
+                return new ExecuteStatementResp(
+                    StatusUtil.fail(new TableNotExistException(tableName).getMessage()), false);
+              }
+
+              int sLock = table.getSLock(session_ID);
+              lockList.add(sLock);
+            }
+
+            if (lockList.contains(-1)) {
+              for (String tableName : tableNames) {
+                Table table = manager.getCurrentDatabase().findTableByName(tableName);
+                table.freeSLock(session_ID);
+              }
+              manager.lockQueue.add(session_ID);
+            } else {
+              break;
+            }
+          } else {
+            if (manager.lockQueue.get(0) == session_ID) {
+              ArrayList<Integer> lockList = new ArrayList<>();
+              for (String tableName : tableNames) {
+                Table table = manager.getCurrentDatabase().findTableByName(tableName);
+                if (table == null) {
+                  autoCommit(session_ID);
+                  return new ExecuteStatementResp(
+                      StatusUtil.fail((new TableNotExistException(tableName).getMessage())), false);
+                }
+
+                int sLock = table.getSLock(session_ID);
+                lockList.add(sLock);
+              }
+
+              if (!lockList.contains(-1)) {
+                manager.lockQueue.remove(0);
+                break;
+              } else {
+                for (String tableName : tableNames) {
+                  Table table = manager.getCurrentDatabase().findTableByName(tableName);
+                  table.freeSLock(session_ID);
+                }
+              }
+            }
+          }
+          try {
+            Thread.sleep(200);
+          } catch (Exception e) {
+            autoCommit(session_ID);
+            return new ExecuteStatementResp(
+                StatusUtil.fail(new LockQueueSleepException().getMessage()), false);
+          }
+        }
+        for (String tableName : tableNames) {
+          Table table = manager.getCurrentDatabase().findTableByName(tableName);
+          table.freeSLock(session_ID);
+        }
+
         QueryTable2 queryTable =
             manager
                 .getCurrentDatabase()
@@ -270,8 +610,63 @@ public class IServiceHandler implements IService.Iface {
         ExecuteStatementResp res = new ExecuteStatementResp(StatusUtil.success(), true);
         res.columnsList = queryResult.getResultColumnNames();
         res.rowList = queryResult.getRowsList();
+
+        execAutoCommit(session_ID);
         return res;
 
+      case BEGIN_TRANSACTION:
+        try {
+          if (!manager.transactionSessions.contains(session_ID)) {
+            manager.transactionSessions.add(session_ID);
+            ArrayList<String> sLock = new ArrayList<>();
+            ArrayList<String> xLock = new ArrayList<>();
+            manager.xLockHash.put(session_ID, sLock);
+            manager.sLockHash.put(session_ID, xLock);
+          } else {
+            return new ExecuteStatementResp(
+                StatusUtil.fail("Session already in transaction!"), false);
+          }
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+        return new ExecuteStatementResp(
+            StatusUtil.success("Begin Transaction: " + String.valueOf(session_ID)), false);
+      case COMMIT:
+        try {
+          if (manager.transactionSessions.contains(session_ID)) {
+            Database database = manager.getCurrentDatabase();
+            String dbName = database.getName();
+            manager.transactionSessions.remove(session_ID);
+
+            ArrayList<String> xTableList = manager.xLockHash.get(session_ID);
+            for (String tableName : xTableList) {
+              Table table = database.findTableByName(tableName);
+              table.freeXLock(session_ID);
+            }
+            xTableList.clear();
+            manager.xLockHash.put(session_ID, xTableList);
+
+            ArrayList<String> sTableList = manager.sLockHash.get(session_ID);
+            if (sTableList.size() != 0) {
+              for (String tableName : sTableList) {
+                Table table = database.findTableByName(tableName);
+                table.freeSLock(session_ID);
+              }
+              sTableList.clear();
+              manager.sLockHash.put(session_ID, sTableList);
+            }
+          } else {
+            return new ExecuteStatementResp(
+                StatusUtil.fail("Failed to commit, not transaction"), false);
+          }
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+        return new ExecuteStatementResp(StatusUtil.success("Transaction committed"), false);
+      case AUTO_BEGIN_TRANSACTION:
+        return autoBegin(session_ID);
+      case AUTO_COMMIT:
+        return autoCommit(session_ID);
       default:
         break;
     }

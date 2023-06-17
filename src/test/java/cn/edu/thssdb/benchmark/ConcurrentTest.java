@@ -4,6 +4,7 @@ import cn.edu.thssdb.benchmark.executor.ConcurrentTestExecutor;
 import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,7 @@ public class ConcurrentTest {
     concurrentTestExecutor.close();
   }
 
-  //  @Test
+  @Test
   public void concurrentTest() throws TException {
     // create database
     LOGGER.info("======================== Create database  ======================== ");

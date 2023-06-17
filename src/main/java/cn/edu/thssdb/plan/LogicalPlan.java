@@ -28,6 +28,10 @@ public abstract class LogicalPlan {
     DELETE_FROM_TABLE,
     UPDATE_TABLE,
     SELECT_FROM_TABLE,
-    ALTER_TABLE
+    ALTER_TABLE,
+    BEGIN_TRANSACTION,
+    COMMIT,
+    AUTO_BEGIN_TRANSACTION,
+    AUTO_COMMIT
   }
 }

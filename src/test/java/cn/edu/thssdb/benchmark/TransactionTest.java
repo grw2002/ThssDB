@@ -3,6 +3,7 @@ package cn.edu.thssdb.benchmark;
 import cn.edu.thssdb.benchmark.executor.TransactionTestExecutor;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,13 +26,13 @@ public class TransactionTest {
     transactionTestExecutor.close();
   }
 
-  //  @Test
+  @Test
   public void testLostUpdate() throws Exception {
     LOGGER.info("======================== Lost update ========================");
     transactionTestExecutor.testLostUpdate();
   }
 
-  //  @Test
+  @Test
   public void testDirtyRead() throws Exception {
     LOGGER.info("======================== Dirty read ========================");
     transactionTestExecutor.testDirtyRead();
