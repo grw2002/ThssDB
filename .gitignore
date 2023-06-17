@@ -41,3 +41,5 @@ java/build/**
 
 # indexdata File
 *.data
+
+# wal log file

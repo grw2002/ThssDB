@@ -20,4 +20,5 @@ public class Global {
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
   public static final boolean simpleMode = false;
   public static final String METADATA_FILE_NAME = "metadata.meta";
+  public static final long ADMINISTER_SESSION = 114514;
 }
