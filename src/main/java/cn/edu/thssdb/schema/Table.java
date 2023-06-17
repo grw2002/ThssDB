@@ -439,12 +439,11 @@ public class Table extends QueryTable2 {
 
         if (columnNames.contains(columnName)) {
           entries[i] =
-              new Entry(
                   entryParse(
                       valueList.get(valueIndex),
                       column.getName(),
                       column.getType(),
-                      column.isNotNull()));
+                      column.isNotNull());
           if (column.isPrimary()) {
             Entry primaryKey = entries[i];
             // 检查主键是否已经存在
