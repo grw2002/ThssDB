@@ -148,7 +148,7 @@ public class Manager {
             database.recover();
 
             // recover from log
-            readLog(database.getName());
+            if(Global.WAL_SWITCH) readLog(database.getName());
           }
           this.currentDatabase = null;
         } else {
@@ -312,7 +312,7 @@ public class Manager {
       if (currentDatabase.getName().equals(databaseName)) {
         currentDatabase = null;
       }
-      deleteLog(databaseName);
+      if(Global.WAL_SWITCH) deleteLog(databaseName);
       databases.remove(databaseName);
     } else {
       throw new DatabaseNotExistException();

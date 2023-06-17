@@ -96,7 +96,7 @@ public class IServiceHandler implements IService.Iface {
     LogicalPlan plan = LogicalGenerator.generate(req.statement, manager);
     // System.out.println("[DEBUG] " + plan);
 
-    if (Arrays.asList(walStmt).contains(stmt.toLowerCase()) && session_ID != Global.ADMINISTER_SESSION) {
+    if (Arrays.asList(walStmt).contains(stmt.toLowerCase()) && session_ID != Global.ADMINISTER_SESSION && Global.WAL_SWITCH) {
       System.out.println("Writing log: " + stmt.toLowerCase());
       manager.writeLog(req.statement, session_ID);
     }
