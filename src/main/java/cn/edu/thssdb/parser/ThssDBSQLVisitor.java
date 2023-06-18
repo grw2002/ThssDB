@@ -162,7 +162,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   @Override
   public LogicalPlan visitShowTablesStmt(SQLParser.ShowTablesStmtContext ctx) {
-    if (!ctx.databaseName().isEmpty()) {
+    if (ctx.databaseName() != null) {
       String databaseName = ctx.databaseName().getText();
       return new ShowTablesPlan(databaseName);
     }

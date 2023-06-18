@@ -45,7 +45,12 @@ public class IServiceHandler implements IService.Iface {
 
   public IServiceHandler() {
     super();
-    manager = Manager.getInstance();
+    this.manager = Manager.getInstance();
+  }
+
+  public IServiceHandler(Manager manager) {
+    super();
+    this.manager = manager;
   }
 
   private void execAutoCommit(long session_ID) {
@@ -89,6 +94,15 @@ public class IServiceHandler implements IService.Iface {
 
     // TODO: implement execution logic
     LogicalPlan plan = LogicalGenerator.generate(req.statement, manager);
+    // System.out.println("[DEBUG] " + plan);
+
+    if (Arrays.asList(walStmt).contains(stmt.toLowerCase())
+        && session_ID != Global.ADMINISTER_SESSION
+        && Global.WAL_SWITCH) {
+      System.out.println("Writing log: " + stmt.toLowerCase());
+      manager.writeLog(req.statement, session_ID);
+    }
+
     //    System.out.println("[DEBUG] " + plan);
     ExecuteStatementResp response;
     switch (plan.getType()) {
@@ -145,7 +159,7 @@ public class IServiceHandler implements IService.Iface {
           ShowTablesPlan showTablesPlan = (ShowTablesPlan) plan;
           String currentDbName = showTablesPlan.getCurrentDatabase();
 
-          List<String> tables = manager.getTablesName();
+          List<String> tables = manager.getTablesName(currentDbName);
           ExecuteStatementResp showTablesResp =
               new ExecuteStatementResp(StatusUtil.success(), true);
           showTablesResp.columnsList = Collections.singletonList("Table");
