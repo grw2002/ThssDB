@@ -378,6 +378,7 @@ public class IServiceHandler implements IService.Iface {
 
           //        System.out.println("[DEBUG] " + response.rowList);
         } catch (Exception e) {
+          e.printStackTrace();
           response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         } finally {
           for (Lock t : locks) {

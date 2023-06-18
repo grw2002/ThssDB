@@ -1,10 +1,11 @@
 package cn.edu.thssdb.index;
 
+import cn.edu.thssdb.storage.Cloneable;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.Serializable;
 
-public final class BPlusTree<K extends Comparable<K>, V>
+public final class BPlusTree<K extends Comparable<K>, V extends Cloneable<V>>
     implements Iterable<Pair<K, V>>, Serializable {
 
   BPlusTreeNode<K, V> root;
@@ -16,8 +17,8 @@ public final class BPlusTree<K extends Comparable<K>, V>
   }
 
   public BPlusTree(String databaseName, String tableName) {
-    root = new BPlusTreeLeafNode<>(0, getIdentifier());
     setDatabaseAndTableName(databaseName, tableName);
+    root = new BPlusTreeLeafNode<>(0, getIdentifier());
   }
 
   public void setDatabaseAndTableName(String databaseName, String tableName) {

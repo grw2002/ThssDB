@@ -1,7 +1,8 @@
 package cn.edu.thssdb.utils;
 
 public class Global {
-  public static int fanout = 129;
+  public static int fanout = 16;
+  public static int MAX_PAGES = 5;
   public static int SUCCESS_CODE = 0;
   public static int FAILURE_CODE = -1;
   public static String DEFAULT_SERVER_HOST = "127.0.0.1";
