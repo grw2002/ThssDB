@@ -64,6 +64,6 @@ public class SelectPlan2 extends LogicalPlan {
       res.append(tableQuery.getText());
     }
     res.append("\nMultipleCondition:").append(conditions == null ? "" : conditions.getText());
-    return "SelectPlan{\n" + res.toString() + "\n}";
+    return "SelectPlan2{\n" + res.toString() + "\n}";
   }
 }

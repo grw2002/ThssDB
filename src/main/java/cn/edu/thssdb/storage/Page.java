@@ -121,7 +121,7 @@ public class Page<V extends Cloneable<V>> implements Serializable, PageInterface
     //    System.out.println("Try write loadpage lock " + getPageFileName());
     lock.writeLock().lock();
     //    System.out.println("Get write loadpage lock " + getPageFileName());
-    Path filePath = Paths.get("./data", getPageFileName());
+    Path filePath = Paths.get("./", getPageFileName());
     try (FileInputStream fis = new FileInputStream(filePath.toFile());
         BufferedInputStream bis = new BufferedInputStream(fis);
         //         FileChannel inChannel = fis.getChannel()
@@ -147,7 +147,7 @@ public class Page<V extends Cloneable<V>> implements Serializable, PageInterface
 
   @Override
   public String getIdentifier() {
-    return getPageFileName();
+    return identifier;
   }
 
   public UUID getUUID() {
@@ -172,7 +172,7 @@ public class Page<V extends Cloneable<V>> implements Serializable, PageInterface
 
   @Override
   public void persist() {
-    Path filePath = Paths.get("./data", getPageFileName());
+    Path filePath = Paths.get("./", getPageFileName());
     try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(rows);

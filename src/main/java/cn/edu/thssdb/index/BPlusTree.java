@@ -4,6 +4,9 @@ import cn.edu.thssdb.storage.Cloneable;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public final class BPlusTree<K extends Comparable<K>, V extends Cloneable<V>>
     implements Iterable<Pair<K, V>>, Serializable {
@@ -75,5 +78,30 @@ public final class BPlusTree<K extends Comparable<K>, V extends Cloneable<V>>
   @Override
   public BPlusTreeIterator<K, V> iterator() {
     return new BPlusTreeIterator<>(this);
+  }
+
+  public BPlusTreeKeyIterator<K, V> keyIterator() {
+    return new BPlusTreeKeyIterator<>(this);
+  }
+
+  public List<V> getValues(List<K> keys) {
+    List<V> result = new ArrayList<>();
+    Iterator<Pair<K, V>> iter = this.iterator();
+    if (!iter.hasNext()) {
+      return result;
+    }
+    Pair<K, V> item = iter.next();
+    for (K key : keys) {
+      while (item.left.compareTo(key) < 0 && iter.hasNext()) {
+        item = iter.next();
+      }
+      if (item.left.compareTo(key) == 0) {
+        result.add(item.right);
+      }
+      if (!iter.hasNext()) {
+        break;
+      }
+    }
+    return result;
   }
 }

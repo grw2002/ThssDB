@@ -76,6 +76,6 @@ public class SimpleJoinPlan extends LogicalPlan {
     res.append("\nTableQuery:" + tableL + " " + tableR);
     res.append("\njoinConditions:").append(joinCondition == null ? "" : joinCondition.getText());
     res.append("\nwhereConditions:").append(whereCondition == null ? "" : whereCondition.getText());
-    return "SelectPlan{\n" + res.toString() + "\n}";
+    return "SimpleJoinPlan{\n" + res.toString() + "\n}";
   }
 }

@@ -1,8 +1,8 @@
 package cn.edu.thssdb.utils;
 
 public class Global {
-  public static int fanout = 16;
-  public static int MAX_PAGES = 5;
+  public static int fanout = 1024;
+  public static int MAX_PAGES = 100;
 
   public static int SUCCESS_CODE = 0;
   public static int FAILURE_CODE = -1;
@@ -19,6 +19,6 @@ public class Global {
   public static final String QUIT = "quit;";
 
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
-  public static final boolean simpleMode = false;
+  public static final boolean simpleMode = true;
   public static final String METADATA_FILE_NAME = "metadata.meta";
 }

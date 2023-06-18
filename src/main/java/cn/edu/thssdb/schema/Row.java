@@ -37,6 +37,10 @@ public class Row implements Serializable {
     this.entries.add(entry);
   }
 
+  public void addEntries(List<Entry> entries) {
+    this.entries.addAll(entries);
+  }
+
   public void dropEntry(int index) {
     this.entries.remove(index);
   }

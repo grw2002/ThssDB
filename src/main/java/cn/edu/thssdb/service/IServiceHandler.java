@@ -89,7 +89,7 @@ public class IServiceHandler implements IService.Iface {
 
     // TODO: implement execution logic
     LogicalPlan plan = LogicalGenerator.generate(req.statement, manager);
-    // System.out.println("[DEBUG] " + plan);
+    //    System.out.println("[DEBUG] " + plan);
     ExecuteStatementResp response;
     switch (plan.getType()) {
       case CREATE_DB:
@@ -322,14 +322,73 @@ public class IServiceHandler implements IService.Iface {
         }
         return response;
       case SIMPLE_SELECT_SINGLE_TABLE:
-        SimpleSinglePlan simpleSinglePlan = (SimpleSinglePlan) plan;
-        QueryTable2 queryTable2 =
-            manager
-                .getCurrentDatabase()
-                .selectSimpleSingle(
-                    simpleSinglePlan.getTableName(), simpleSinglePlan.getCondition());
+        List<Lock> locks_single_simple = new ArrayList<>();
+        try {
+          SimpleSinglePlan simpleSinglePlan = (SimpleSinglePlan) plan;
+          Table table =
+              manager.getCurrentDatabase().findTableByName(simpleSinglePlan.getTableName());
+          if (table == null) {
+            throw new TableNotExistException(simpleSinglePlan.getTableName());
+          }
+          locks_single_simple.add(table.getReadLock());
+          manager.transactionAddMultipleLocks(session_ID, locks_single_simple);
+          QueryTable2 queryTable =
+              manager
+                  .getCurrentDatabase()
+                  .selectSimpleSingle(
+                      simpleSinglePlan.getTableName(), simpleSinglePlan.getCondition());
+          QueryResult2 queryResult =
+              QueryResult2.makeResult(queryTable, simpleSinglePlan.getResultColumns());
+          response = new ExecuteStatementResp(StatusUtil.success(), true);
+          response.columnsList = queryResult.getResultColumnNames();
+          response.rowList = queryResult.getRowsList();
+
+        } catch (Exception e) {
+          e.printStackTrace();
+          response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        } finally {
+          for (Lock t : locks_single_simple) {
+            t.unlock();
+          }
+          execAutoCommit(session_ID);
+        }
+        return response;
       case SIMPLE_SELECT_JOIN_TABLE:
-        SimpleJoinPlan simpleJoinPlan = (SimpleJoinPlan) plan;
+        List<Lock> locks_simple_join = new ArrayList<>();
+        try {
+          SimpleJoinPlan simpleJoinPlan = (SimpleJoinPlan) plan;
+          Table tableL = manager.getCurrentDatabase().findTableByName(simpleJoinPlan.getTableL());
+          Table tableR = manager.getCurrentDatabase().findTableByName(simpleJoinPlan.getTableR());
+          if (tableL == null || tableR == null) {
+            throw new TableNotExistException(simpleJoinPlan.getTableL());
+          }
+          locks_simple_join.add(tableL.getReadLock());
+          locks_simple_join.add(tableR.getReadLock());
+          manager.transactionAddMultipleLocks(session_ID, locks_simple_join);
+          QueryTable2 queryTable =
+              manager
+                  .getCurrentDatabase()
+                  .selectSimpleJoin(
+                      simpleJoinPlan.getTableL(),
+                      simpleJoinPlan.getTableR(),
+                      simpleJoinPlan.getJoinCondition(),
+                      simpleJoinPlan.getWhereCondition());
+          QueryResult2 queryResult =
+              QueryResult2.makeResult(queryTable, simpleJoinPlan.getResultColumns());
+          response = new ExecuteStatementResp(StatusUtil.success(), true);
+          response.columnsList = queryResult.getResultColumnNames();
+          response.rowList = queryResult.getRowsList();
+
+        } catch (Exception e) {
+          e.printStackTrace();
+          response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        } finally {
+          for (Lock t : locks_simple_join) {
+            t.unlock();
+          }
+          execAutoCommit(session_ID);
+        }
+        return response;
       case SELECT_FROM_TABLE:
         List<Lock> locks = new ArrayList<>();
         try {

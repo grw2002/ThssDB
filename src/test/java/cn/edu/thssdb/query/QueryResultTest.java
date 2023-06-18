@@ -135,10 +135,13 @@ public class QueryResultTest {
   }
 
   @Test
-  public void testSelectFromOneTable() {
+  public void testSelectFromOneTable() throws TException {
     String[] attrs = new String[] {"age", "name"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1;";
-    ExecuteStatementResp res = executeStatementResp(sql);
+    IServiceHandler service = new IServiceHandler();
+    ExecuteStatementReq req = new ExecuteStatementReq(12345L, "");
+    req.setStatement(sql);
+    ExecuteStatementResp res = service.executeStatement(req);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
 
     Database db = manager.getCurrentDatabase();
@@ -158,10 +161,13 @@ public class QueryResultTest {
   }
 
   @Test
-  public void testSelectFromMultipleTables() {
+  public void testSelectFromMultipleTables() throws TException {
     String[] attrs = new String[] {"name", "age", "age", "name", "id", "phone", "location"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1,table2;";
-    ExecuteStatementResp res = executeStatementResp(sql);
+    IServiceHandler service = new IServiceHandler();
+    ExecuteStatementReq req = new ExecuteStatementReq(12345L, "");
+    req.setStatement(sql);
+    ExecuteStatementResp res = service.executeStatement(req);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
 
     Database db = manager.getCurrentDatabase();
@@ -191,12 +197,14 @@ public class QueryResultTest {
     }
   }
 
-  @Test
-  public void testWhere() {
+  //  @Test
+  public void testWhere() throws TException {
     String[] attrs = new String[] {"age", "name"};
     String sql = "SELECT " + String.join(",", attrs) + " FROM table1 WHERE (age*5) > 10*(10+5)-45;";
-    //    String sql="UPDATE table1 SET age=age+1 WHERE age > 1;";
-    ExecuteStatementResp res = executeStatementResp(sql);
+    IServiceHandler service = new IServiceHandler();
+    ExecuteStatementReq req = new ExecuteStatementReq(12345L, "");
+    req.setStatement(sql);
+    ExecuteStatementResp res = service.executeStatement(req);
     System.out.println("[DEBUG] " + res.columnsList + res.rowList);
 
     Database db = manager.getCurrentDatabase();

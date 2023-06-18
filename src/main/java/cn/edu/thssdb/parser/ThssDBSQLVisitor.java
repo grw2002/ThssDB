@@ -335,22 +335,25 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   @Override
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) throws RuntimeException {
     if (Global.simpleMode) {
-      SQLParser.TableQueryContext tableQueryContext = ctx.tableQuery(0);
-      SQLParser.ConditionContext whereCondition = null;
-      if (ctx.multipleCondition() != null) {
-        whereCondition = ctx.multipleCondition().condition();
-      }
-      if (tableQueryContext.K_JOIN().size() > 0) {
-
-        return new SimpleJoinPlan(
-            ctx.resultColumn(),
-            tableQueryContext.tableName(0).getText(),
-            tableQueryContext.tableName(1).getText(),
-            tableQueryContext.multipleCondition().condition(),
-            whereCondition);
-      } else {
-        return new SimpleSinglePlan(
-            ctx.resultColumn(), tableQueryContext.tableName(0).getText(), whereCondition);
+      if (ctx.tableQuery().size() == 1) {
+        SQLParser.TableQueryContext tableQueryContext = ctx.tableQuery(0);
+        if (ctx.multipleCondition() == null || ctx.multipleCondition().condition() != null) {
+          SQLParser.ConditionContext whereCondition = null;
+          if (ctx.multipleCondition() != null) {
+            whereCondition = ctx.multipleCondition().condition();
+          }
+          if (tableQueryContext.K_JOIN().size() > 0) {
+            return new SimpleJoinPlan(
+                ctx.resultColumn(),
+                tableQueryContext.tableName(0).getText(),
+                tableQueryContext.tableName(1).getText(),
+                tableQueryContext.multipleCondition().condition(),
+                whereCondition);
+          } else {
+            return new SimpleSinglePlan(
+                ctx.resultColumn(), tableQueryContext.tableName(0).getText(), whereCondition);
+          }
+        }
       }
     }
     return new SelectPlan2(ctx.resultColumn(), ctx.tableQuery(), ctx.multipleCondition());

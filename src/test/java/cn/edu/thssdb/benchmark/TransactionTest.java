@@ -1,7 +1,6 @@
 package cn.edu.thssdb.benchmark;
 
 import cn.edu.thssdb.benchmark.executor.TransactionTestExecutor;
-import cn.edu.thssdb.server.ThssDB;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,8 +14,8 @@ public class TransactionTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    ThssDB.main(null);
-    Thread.sleep(1000);
+    //    ThssDB.main(null);
+    //    Thread.sleep(1000);
     transactionTestExecutor = new TransactionTestExecutor();
     LOGGER.info("======================== Create database  ======================== ");
     transactionTestExecutor.createAndUseDB();

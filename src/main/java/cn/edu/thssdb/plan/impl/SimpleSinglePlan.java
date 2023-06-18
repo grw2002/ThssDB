@@ -61,6 +61,6 @@ public class SimpleSinglePlan extends LogicalPlan {
     }
     res.append("\nTableQuery:" + tableName);
     res.append("\nMultipleCondition:").append(condition == null ? "" : condition.getText());
-    return "SelectPlan{\n" + res.toString() + "\n}";
+    return "SimpleSinglePlan{\n" + res.toString() + "\n}";
   }
 }
