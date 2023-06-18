@@ -1,6 +1,7 @@
 package cn.edu.thssdb.benchmark;
 
 import cn.edu.thssdb.benchmark.executor.ConcurrentTestExecutor;
+import cn.edu.thssdb.server.ThssDB;
 import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -15,8 +16,8 @@ public class ConcurrentTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    //    ThssDB.main(null);
-    //    Thread.sleep(1000);
+    ThssDB.main(null);
+    Thread.sleep(1000);
     concurrentTestExecutor = new ConcurrentTestExecutor();
   }
 

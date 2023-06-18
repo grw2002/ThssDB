@@ -102,6 +102,7 @@ public class Manager {
         continue;
       }
       lock.lock();
+      curLocks.add(lock);
     }
   }
 
