@@ -9,7 +9,6 @@ import cn.edu.thssdb.service.IServiceHandler;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.storage.Storage;
 import cn.edu.thssdb.utils.Global;
-import org.apache.thrift.TException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -158,7 +157,7 @@ public class Manager {
             database.recover();
 
             // recover from log
-            if(Global.WAL_SWITCH) readLog(database.getName());
+            if (Global.WAL_SWITCH) readLog(database.getName());
           }
           this.currentDatabase = null;
         } else {
@@ -322,7 +321,7 @@ public class Manager {
       if (currentDatabase.getName().equals(databaseName)) {
         currentDatabase = null;
       }
-      if(Global.WAL_SWITCH) deleteLog(databaseName);
+      if (Global.WAL_SWITCH) deleteLog(databaseName);
       databases.remove(databaseName);
     } else {
       throw new DatabaseNotExistException();
