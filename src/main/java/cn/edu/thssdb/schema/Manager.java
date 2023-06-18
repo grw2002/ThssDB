@@ -2,9 +2,14 @@ package cn.edu.thssdb.schema;
 
 import cn.edu.thssdb.exception.DatabaseExistsException;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.exception.LogFileException;
 import cn.edu.thssdb.exception.TableNotExistException;
+import cn.edu.thssdb.rpc.thrift.ExecuteStatementReq;
+import cn.edu.thssdb.service.IServiceHandler;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.storage.Storage;
+import cn.edu.thssdb.utils.Global;
+import org.apache.thrift.TException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -30,6 +35,23 @@ public class Manager {
   public HashMap<Long, ArrayList<String>> sLockHash;
   public HashMap<Long, List<Lock>> tranLocks;
   private final Storage storage;
+
+  public static Manager getInstance() {
+    return Manager.ManagerHolder.INSTANCE;
+  }
+
+  public Manager() {
+    // TODO
+    databases = new HashMap<>();
+    autoExecute = new HashMap<>();
+    xLockHash = new HashMap<>();
+    sLockHash = new HashMap<>();
+    transactionSessions = new ArrayList<>();
+    lockQueue = new ArrayList<>();
+    currentDatabase = null;
+    this.storage = new Storage();
+    this.tranLocks = new HashMap<>();
+  }
 
   public Storage getStorage() {
     return storage;
@@ -134,7 +156,11 @@ public class Manager {
           this.databases = (HashMap<String, Database>) fileContent;
           for (Database database : this.databases.values()) {
             database.recover();
+
+            // recover from log
+            if(Global.WAL_SWITCH) readLog(database.getName());
           }
+          this.currentDatabase = null;
         } else {
           System.out.println("Invalid metadata file content. Expected HashMap<String, Database>.");
         }
@@ -146,22 +172,122 @@ public class Manager {
     }
   }
 
-  public static Manager getInstance() {
-    Manager instance = Manager.ManagerHolder.INSTANCE;
-    return instance;
+  public void writeLog(String statement, long session_ID) {
+    if (this.currentDatabase == null) {
+      return;
+    }
+    String logFile = this.getCurrentDatabaseName() + ".log";
+
+    try {
+      // session_ID: statement
+      FileWriter writer = new FileWriter(logFile, true);
+      writer.write(session_ID + ":" + statement + "\n");
+      writer.close();
+    } catch (Exception e) {
+      throw new LogFileException(this.getCurrentDatabaseName());
+    }
   }
 
-  public Manager() {
-    // TODO
-    databases = new HashMap<>();
-    autoExecute = new HashMap<>();
-    xLockHash = new HashMap<>();
-    sLockHash = new HashMap<>();
-    transactionSessions = new ArrayList<>();
-    lockQueue = new ArrayList<>();
-    currentDatabase = null;
-    this.storage = new Storage();
-    this.tranLocks = new HashMap<>();
+  public void deleteLog(String databaseName) {
+    System.out.println("deleting log: " + databaseName);
+
+    String logFileName = databaseName + ".log";
+    File logFile = new File(logFileName);
+    try {
+      logFile.delete();
+    } catch (Exception e) {
+      throw new LogFileException(databaseName);
+    }
+  }
+
+  public void readLog(String databaseName) {
+    String logFileName = databaseName + ".log";
+    File logFile = new File(logFileName);
+
+    if (!logFile.isFile() || !logFile.exists()) {
+      throw new LogFileException(databaseName);
+    }
+    try {
+      currentDatabase = databases.get(databaseName);
+
+      InputStreamReader reader = new InputStreamReader(new FileInputStream(logFile));
+      BufferedReader bufReader = new BufferedReader(reader);
+
+      ArrayList<String> logRecords = new ArrayList<>();
+      String record;
+
+      // begin without commit
+      HashMap<String, Integer> firstBeginWithoutCommit = new HashMap<>();
+      int index = 0;
+
+      try {
+        while ((record = bufReader.readLine()) != null) {
+          String session_ID = record.split(":")[0].trim();
+          String stmt = record.split(":")[1].trim();
+
+          if (stmt.equals("commit") || (stmt.equals("commit;"))) {
+            firstBeginWithoutCommit.remove(session_ID);
+          } else if (stmt.equals("begin transaction") || (stmt.equals("begin transaction;"))) {
+            if (!firstBeginWithoutCommit.containsKey(session_ID)) {
+              firstBeginWithoutCommit.put(session_ID, index);
+            }
+          }
+          logRecords.add(record);
+          index++;
+        }
+
+        // redo
+        ArrayList<String> executedLines = new ArrayList<>();
+
+        ExecuteStatementReq useDataBaseReq = new ExecuteStatementReq();
+        useDataBaseReq.setStatement("use " + databaseName + ";");
+        useDataBaseReq.setSessionId(Global.ADMINISTER_SESSION);
+        IServiceHandler handler = new IServiceHandler(this);
+        handler.executeStatement(useDataBaseReq);
+
+        for (int i = 0; i < logRecords.size(); i++) {
+          String session_ID = logRecords.get(i).split(":")[0].trim();
+          String stmt = logRecords.get(i).split(":")[1].trim();
+
+          boolean shouldExecute = false;
+          System.out.println(stmt);
+          if (firstBeginWithoutCommit.containsKey(session_ID)
+              && firstBeginWithoutCommit.get(session_ID) > i) {
+            shouldExecute = true;
+          } else if (!firstBeginWithoutCommit.containsKey(session_ID)) {
+            shouldExecute = true;
+          }
+
+          if (shouldExecute) {
+            ExecuteStatementReq req = new ExecuteStatementReq();
+            req.setStatement(stmt);
+            req.setSessionId(Global.ADMINISTER_SESSION);
+            handler.executeStatement(req);
+            String executeLine = session_ID + ":" + stmt + "\n";
+            executedLines.add(executeLine);
+          }
+        }
+        bufReader.close();
+        reader.close();
+
+        // alter log
+        if (executedLines.size() != logRecords.size()) {
+          FileWriter writer = new FileWriter(logFile);
+          writer.write("");
+          writer.close();
+          FileWriter newWriter = new FileWriter(logFile, true);
+
+          for (String executedLine : executedLines) {
+            newWriter.write(executedLine);
+          }
+          newWriter.close();
+        }
+      } catch (Exception e) {
+        throw new LogFileException(e.getMessage());
+      }
+    } catch (Exception e) {
+      throw new LogFileException(e.getMessage());
+    }
   }
 
   public Database getCurrentDatabase() {
@@ -196,6 +322,7 @@ public class Manager {
       if (currentDatabase.getName().equals(databaseName)) {
         currentDatabase = null;
       }
+      if(Global.WAL_SWITCH) deleteLog(databaseName);
       databases.remove(databaseName);
     } else {
       throw new DatabaseNotExistException();
@@ -220,8 +347,8 @@ public class Manager {
     return new ArrayList<>(databases.keySet());
   }
 
-  public List<String> getTablesName() {
-    return currentDatabase.getTablesName();
+  public List<String> getTablesName(String databaseName) {
+    return findDatabaseByName(databaseName).getTablesName();
   }
 
   public void createTable(String tableName, List<Column> columns) throws RuntimeException {
