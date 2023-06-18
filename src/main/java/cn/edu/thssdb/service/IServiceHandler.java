@@ -344,7 +344,7 @@ public class IServiceHandler implements IService.Iface {
           if (table == null) {
             throw new TableNotExistException(simpleSinglePlan.getTableName());
           }
-          locks_single_simple.add(table.getReadLock());
+          locks_single_simple.add(table.getWriteLock());
           manager.transactionAddMultipleLocks(session_ID, locks_single_simple);
           QueryTable2 queryTable =
               manager
@@ -361,9 +361,9 @@ public class IServiceHandler implements IService.Iface {
           e.printStackTrace();
           response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         } finally {
-          for (Lock t : locks_single_simple) {
-            t.unlock();
-          }
+          //          for (Lock t : locks_single_simple) {
+          //            t.unlock();
+          //          }
           execAutoCommit(session_ID);
         }
         return response;
@@ -376,8 +376,8 @@ public class IServiceHandler implements IService.Iface {
           if (tableL == null || tableR == null) {
             throw new TableNotExistException(simpleJoinPlan.getTableL());
           }
-          locks_simple_join.add(tableL.getReadLock());
-          locks_simple_join.add(tableR.getReadLock());
+          locks_simple_join.add(tableL.getWriteLock());
+          locks_simple_join.add(tableR.getWriteLock());
           manager.transactionAddMultipleLocks(session_ID, locks_simple_join);
           QueryTable2 queryTable =
               manager
@@ -397,9 +397,9 @@ public class IServiceHandler implements IService.Iface {
           e.printStackTrace();
           response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         } finally {
-          for (Lock t : locks_simple_join) {
-            t.unlock();
-          }
+          //          for (Lock t : locks_simple_join) {
+          //            t.unlock();
+          //          }
           execAutoCommit(session_ID);
         }
         return response;
@@ -420,7 +420,7 @@ public class IServiceHandler implements IService.Iface {
               if (table == null) {
                 throw new TableNotExistException(tableNameContext.getText());
               }
-              ReentrantReadWriteLock.ReadLock lock = table.getReadLock();
+              ReentrantReadWriteLock.WriteLock lock = table.getWriteLock();
               if (!locks.contains(lock)) {
                 locks.add(lock);
               }
@@ -443,9 +443,9 @@ public class IServiceHandler implements IService.Iface {
           e.printStackTrace();
           response = new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
         } finally {
-          for (Lock t : locks) {
-            t.unlock();
-          }
+          //          for (Lock t : locks) {
+          //            t.unlock();
+          //          }
           execAutoCommit(session_ID);
         }
         return response;
