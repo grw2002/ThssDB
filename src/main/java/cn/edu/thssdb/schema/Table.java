@@ -439,12 +439,11 @@ public class Table extends QueryTable2 {
 
         if (columnNames.contains(columnName)) {
           entries[i] =
-              new Entry(
-                  entryParse(
-                      valueList.get(valueIndex),
-                      column.getName(),
-                      column.getType(),
-                      column.isNotNull()));
+              entryParse(
+                  valueList.get(valueIndex),
+                  column.getName(),
+                  column.getType(),
+                  column.isNotNull());
           if (column.isPrimary()) {
             Entry primaryKey = entries[i];
             // 检查主键是否已经存在
@@ -581,14 +580,14 @@ public class Table extends QueryTable2 {
       String columnName,
       SQLParser.LiteralValueContext newValue,
       SQLParser.ConditionContext condition) {
-    System.out.println(
-        "updateWithConditions"
-            + " "
-            + columnName
-            + " "
-            + newValue.getText()
-            + " "
-            + condition.getText());
+    //    System.out.println(
+    //        "updateWithConditions"
+    //            + " "
+    //            + columnName
+    //            + " "
+    //            + newValue.getText()
+    //            + " "
+    //            + condition.getText());
     Column column = findColumnByName(columnName);
     if (column == null) {
       throw new ColumnNotExistException(columnName);

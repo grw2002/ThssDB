@@ -1,8 +1,9 @@
 package cn.edu.thssdb.utils;
 
 public class Global {
-  public static int fanout = 16;
-  public static int MAX_PAGES = 5;
+  public static int fanout = 1024;
+  public static int MAX_PAGES = 100;
+
   public static int SUCCESS_CODE = 0;
   public static int FAILURE_CODE = -1;
   public static String DEFAULT_SERVER_HOST = "127.0.0.1";
@@ -15,7 +16,7 @@ public class Global {
   public static final String DISCONNECT = "disconnect;";
   public static final String QUIT = "quit;";
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
-  public static final boolean simpleMode = false;
+  public static final boolean simpleMode = true;
   public static final String METADATA_FILE_NAME = "metadata.meta";
   public static final long ADMINISTER_SESSION = 114514;
   public static final boolean WAL_SWITCH = false;

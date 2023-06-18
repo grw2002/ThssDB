@@ -4,6 +4,8 @@ import cn.edu.thssdb.exception.TableExistsException;
 import cn.edu.thssdb.exception.TableNotExistException;
 import cn.edu.thssdb.query.*;
 import cn.edu.thssdb.sql.SQLParser;
+import cn.edu.thssdb.storage.PageRow;
+import cn.edu.thssdb.utils.Pair;
 
 import java.io.Serializable;
 import java.util.*;
@@ -145,32 +147,105 @@ public class Database implements Serializable {
         throw new RuntimeException("Column " + lValue + " does not exist");
       }
       if (column.isPrimary()) {
+        QueryTable2 result = new QueryTable2("result", table.getColumns());
         SQLParser.LiteralValueContext rValue =
             whereCondition.expression(1).comparer().literalValue();
         SQLParser.ComparatorContext op = whereCondition.comparator();
-        Entry value = Table.entryParse(rValue, column);
+        Entry attrValue = Table.entryParse(rValue, column);
         if (rValue.K_NULL() != null) {
-          // TODO: handle NULL
+          if (op.NE() != null) {
+            return table;
+          }
+          return result;
         }
         if (op.EQ() != null) {
-          // TODO
+          if (table.index.contains(attrValue)) {
+            result.insert(table.index.get(attrValue));
+          }
         } else if (op.NE() != null) {
-          // TODO
+          for (Pair<Entry, PageRow> index : table.index) {
+            if (!index.left.equals(attrValue)) {
+              result.insert(index.right);
+            }
+          }
         } else if (op.GT() != null) {
-          // TODO
+          Iterator iter = table.index.iterator();
+          while (iter.hasNext()) {
+            Pair<Entry, PageRow> item = (Pair<Entry, PageRow>) iter.next();
+            if (item.left.compareTo(attrValue) <= 0) {
+              continue;
+            } else {
+              result.insert(item.right);
+              break;
+            }
+          }
+          while (iter.hasNext()) {
+            result.insert(((Pair<Entry, PageRow>) iter.next()).right);
+          }
         } else if (op.LT() != null) {
-          // TODO
+          Iterator iter = table.index.iterator();
+          while (iter.hasNext()) {
+            Pair<Entry, PageRow> item = (Pair<Entry, PageRow>) iter.next();
+            if (item.left.compareTo(attrValue) < 0) {
+              result.insert(item.right);
+            } else {
+              break;
+            }
+          }
         } else if (op.GE() != null) {
-          // TODO
+          Iterator iter = table.index.iterator();
+          while (iter.hasNext()) {
+            Pair<Entry, PageRow> item = (Pair<Entry, PageRow>) iter.next();
+            if (item.left.compareTo(attrValue) < 0) {
+              continue;
+            } else {
+              result.insert(item.right);
+              break;
+            }
+          }
+          while (iter.hasNext()) {
+            result.insert(((Pair<Entry, PageRow>) iter.next()).right);
+          }
         } else if (op.LE() != null) {
-          // TODO
+          Iterator iter = table.index.iterator();
+          while (iter.hasNext()) {
+            Pair<Entry, PageRow> item = (Pair<Entry, PageRow>) iter.next();
+            if (item.left.compareTo(attrValue) <= 0) {
+              result.insert(item.right);
+            } else {
+              break;
+            }
+          }
         } else {
           throw new RuntimeException("Invalid operator: " + op.getText());
         }
-        return QueryTable2.joinQueryTables(Collections.singletonList(table), whereCondition);
+        return result;
       } else {
         return QueryTable2.joinQueryTables(Collections.singletonList(table), whereCondition);
       }
+    }
+  }
+
+  static boolean isEntrySatisfy(
+      Entry l, SQLParser.ComparatorContext op, SQLParser.LiteralValueContext r, Column column) {
+    if (r.K_NULL() != null) {
+      return op.NE() != null;
+    }
+    Entry val = Table.entryParse(r, column);
+    if (op.EQ() != null) {
+      return l.compareTo(val) == 0;
+    } else if (op.NE() != null) {
+      return l.compareTo(val) != 0;
+    } else if (op.GT() != null) {
+      return l.compareTo(val) > 0;
+    } else if (op.LT() != null) {
+      return l.compareTo(val) < 0;
+    } else if (op.GE() != null) {
+      return l.compareTo(val) >= 0;
+    } else if (op.LE() != null) {
+      return l.compareTo(val) <= 0;
+    } else {
+      throw new RuntimeException("Invalid operator: " + op.getText());
     }
   }
 
@@ -181,7 +256,6 @@ public class Database implements Serializable {
       SQLParser.ConditionContext whereCondition) {
     Table tableL = findTableByName(tableLName);
     Table tableR = findTableByName(tableRName);
-    Table tmp = null; // use to swap
     if (tableL == null || tableR == null) {
       throw new TableNotExistException(tableLName + " " + tableRName);
     }
@@ -190,43 +264,150 @@ public class Database implements Serializable {
           whereCondition.expression(0).comparer().columnFullName();
       String tableName = whereColumnName.tableName().getText();
       String columnName = whereColumnName.columnName().getText();
-      if (tableName.equals(tableRName)) {
-        tmp = tableL;
+      if (tableName.equals(tableLName)) {
+        Table tmp = tableL;
         tableL = tableR;
         tableR = tmp;
       }
-      // make sure tableL is the table that contains the column
-      Column column = tableL.findColumnByName(columnName);
-      if (column == null) {
+      // make sure tableR is the table that contains the column
+      Column whereColumn = tableR.findColumnByName(columnName);
+      if (whereColumn == null) {
         throw new RuntimeException("Column " + columnName + " does not exist");
       }
-      if (column.isPrimary()) {
-        SQLParser.LiteralValueContext rValue =
-            whereCondition.expression(1).comparer().literalValue();
-        SQLParser.ComparatorContext op = whereCondition.comparator();
-        Entry value = Table.entryParse(rValue, column);
-        if (rValue.K_NULL() != null) {
-          // TODO: handle NULL
-        }
-        if (op.EQ() != null) {
-          // TODO
-        } else if (op.NE() != null) {
-          // TODO
-        } else if (op.GT() != null) {
-          // TODO
-        } else if (op.LT() != null) {
-          // TODO
-        } else if (op.GE() != null) {
-          // TODO
-        } else if (op.LE() != null) {
-          // TODO
-        } else {
-          throw new RuntimeException("Invalid operator: " + op.getText());
-        }
-      } else {;
+      SQLParser.ComparatorContext whereOp = whereCondition.comparator();
+      SQLParser.LiteralValueContext whereValue =
+          whereCondition.expression(1).comparer().literalValue();
+
+      // begin join
+      SQLParser.ColumnFullNameContext joinColumnNameL =
+          joinCondition.expression(0).comparer().columnFullName();
+      SQLParser.ColumnFullNameContext joinColumnNameR =
+          joinCondition.expression(1).comparer().columnFullName();
+      Column joinColumnL, joinColumnR;
+
+      boolean flag;
+      if (tableL.getTableName().equals(joinColumnNameR.tableName().getText())) {
+        //        System.out.println("Mark1" + " " +
+        // tableL.findColumnByName(joinColumnNameR.columnName().getText())
+        //            + " " + tableR.findColumnByName(joinColumnNameL.columnName().getText()));
+        flag =
+            tableL.findColumnByName(joinColumnNameR.columnName().getText()).isPrimary()
+                && tableR.findColumnByName(joinColumnNameL.columnName().getText()).isPrimary();
+      } else {
+        //        System.out.println("Mark2");
+        flag =
+            tableL.findColumnByName(joinColumnNameL.columnName().getText()).isPrimary()
+                && tableR.findColumnByName(joinColumnNameR.columnName().getText()).isPrimary();
       }
+      SQLParser.ComparatorContext joinOp = joinCondition.comparator();
+      flag = flag && joinOp.EQ() != null && whereColumn.isPrimary();
+
+      if (flag) {
+        //        System.out.println("Using index join");
+        Iterator<Entry> iterL = tableL.index.keyIterator();
+        Iterator<Entry> iterR = tableR.index.keyIterator();
+        // the most common case
+        List<Entry> keysL = new ArrayList<>();
+        List<Entry> keysR = new ArrayList<>();
+        if (iterR.hasNext()) {
+          Entry itemR = iterR.next();
+          while (iterL.hasNext()) {
+            Entry itemL = iterL.next();
+            while (itemR.compareTo(itemL) < 0 && iterR.hasNext()) {
+              itemR = iterR.next();
+            }
+            if (itemR.compareTo(itemL) == 0) {
+              if (isEntrySatisfy(itemR, whereOp, whereValue, whereColumn)) {
+                keysL.add(itemL);
+                keysR.add(itemR);
+              }
+            }
+            if (!iterR.hasNext()) {
+              break;
+            }
+          }
+        }
+        List<Column> columns = new ArrayList<>();
+        columns.addAll(tableL.getColumns());
+        columns.addAll(tableR.getColumns());
+        QueryTable2 queryTable = new QueryTable2("result", columns);
+        for (int i = 0; i < keysL.size(); i++) {
+          Entry keyL = keysL.get(i);
+          Entry keyR = keysR.get(i);
+          PageRow rowL = tableL.index.get(keyL).clone();
+          PageRow rowR = tableR.index.get(keyR).clone();
+          Row row = new Row();
+          row.addEntries(rowL.getEntries());
+          row.addEntries(rowR.getEntries());
+          queryTable.insert(row);
+        }
+        return queryTable;
+      }
+      return QueryTable2.joinQueryTables(
+          Collections.singletonList(
+              QueryTable2.joinQueryTables(Arrays.asList(tableL, tableR), joinCondition)),
+          whereCondition);
+    } else {
+      // begin join
+      SQLParser.ColumnFullNameContext joinColumnNameL =
+          joinCondition.expression(0).comparer().columnFullName();
+      SQLParser.ColumnFullNameContext joinColumnNameR =
+          joinCondition.expression(1).comparer().columnFullName();
+      Column joinColumnL, joinColumnR;
+
+      boolean flag;
+      if (tableL.findColumnByName(joinColumnNameL.tableName().getText()) == null) {
+        flag =
+            tableL.findColumnByName(joinColumnNameR.columnName().getText()).isPrimary()
+                && tableR.findColumnByName(joinColumnNameL.columnName().getText()).isPrimary();
+      } else {
+        flag =
+            tableL.findColumnByName(joinColumnNameL.columnName().getText()).isPrimary()
+                && tableR.findColumnByName(joinColumnNameR.columnName().getText()).isPrimary();
+      }
+      SQLParser.ComparatorContext joinOp = joinCondition.comparator();
+      flag = flag && joinOp.EQ() != null;
+
+      if (flag) {
+        Iterator<Entry> iterL = tableL.index.keyIterator();
+        Iterator<Entry> iterR = tableR.index.keyIterator();
+        // the most common case
+        List<Entry> keysL = new ArrayList<>();
+        List<Entry> keysR = new ArrayList<>();
+        if (iterR.hasNext()) {
+          Entry itemR = iterR.next();
+          while (iterL.hasNext()) {
+            Entry itemL = iterL.next();
+            while (itemR.compareTo(itemL) < 0 && iterR.hasNext()) {
+              itemR = iterR.next();
+            }
+            if (itemR.compareTo(itemL) == 0) {
+              keysL.add(itemL);
+              keysR.add(itemR);
+            }
+            if (!iterR.hasNext()) {
+              break;
+            }
+          }
+        }
+        List<Column> columns = new ArrayList<>();
+        columns.addAll(tableL.getColumns());
+        columns.addAll(tableR.getColumns());
+        QueryTable2 queryTable = new QueryTable2("result", columns);
+        for (int i = 0; i < keysL.size(); i++) {
+          Entry keyL = keysL.get(i);
+          Entry keyR = keysR.get(i);
+          PageRow rowL = tableL.index.get(keyL).clone();
+          PageRow rowR = tableR.index.get(keyR).clone();
+          Row row = new Row();
+          row.addEntries(rowL.getEntries());
+          row.addEntries(rowR.getEntries());
+          queryTable.insert(row);
+        }
+        return queryTable;
+      }
+      return QueryTable2.joinQueryTables(Arrays.asList(tableL, tableR), joinCondition);
     }
-    return QueryTable2.joinQueryTables(Arrays.asList(tableL, tableR), joinCondition);
   }
 
   public void recover() {

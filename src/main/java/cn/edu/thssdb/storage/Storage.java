@@ -12,12 +12,13 @@ public class Storage {
   }
 
   public synchronized void addPage(PageInterface page) {
-    String identifier = page.getIdentifier();
-    //    String identifier = "0";
+    //    String identifier = page.getIdentifier();
+    String identifier = "0";
     if (!tablePages.containsKey(identifier)) {
       tablePages.put(identifier, new ArrayList<>());
     }
     List<PageInterface> pages = tablePages.get(identifier);
+    //    System.out.println("pages.size() = " + pages.size()+" "+identifier);
     if (pages.size() >= Global.MAX_PAGES) {
       long minx = Long.MAX_VALUE;
       int target = 0;
